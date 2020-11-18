@@ -51,6 +51,11 @@ typedef enum _commandArgsType {
 //endregion
 
 //region Data types
+typedef struct _strListEl {
+    char *value;
+    struct _strListEl *next;
+} ListElementString;
+
 typedef struct _command {
     CommandType type;
     CommandName name;
@@ -61,37 +66,24 @@ typedef struct _command {
 } Command;
 //endregion
 
-char* Delims = " ";
-
-/*
- * Reads delimiters from the argument -d to the global variable delims.
- * Exits if:
- * Delimiter wasn't specified in the argument.
- * Delimiter contains forbidden symbols (" or \").
- */
-void read_delims(int argc, char *argv[])
+//region List methods
+void add(ListElementString *head, char *value)
 {
-    for (int i = 1; i < argc; ++i)
+    ListElementString *curr = head;
+    while (curr->next != NULL)
     {
-        if (strcmp(argv[i], "-d") == 0)
-        {
-
-            if (i + 1 >= argc)
-            {
-                fprintf(stderr, "ERROR: delimeter wasn't specified in the argument '-d'.\n");
-                exit(EXIT_FAILURE);
-            }
-            Delims = argv[i + 1];
-
-            if (strstr(Delims, "\"") != NULL || strstr(Delims, "\\") != NULL)
-            {
-                fprintf(stderr, "ERROR: delimiter can't be \" or \\.\n");
-                exit(EXIT_FAILURE);
-            }
-
-            return;
-        }
+        curr = curr->next;
     }
+
+    curr->next = (ListElementString *) malloc(sizeof(ListElementString));
+    curr->next->value = value;
+    curr->next->next = NULL;
+}
+//endregion
+
+ListElementString strsplit(char *string)
+{
+
 }
 
 CommandName str_to_cmd_name(char *command)
@@ -182,6 +174,39 @@ CommandType get_cmd_type(CommandName command)
 Command str_to_cmd(char *input)
 {
 
+}
+
+char* Delims = " ";
+
+/*
+ * Reads delimiters from the argument -d to the global variable delims.
+ * Exits if:
+ * Delimiter wasn't specified in the argument.
+ * Delimiter contains forbidden symbols (" or \").
+ */
+void read_delims(int argc, char *argv[])
+{
+    for (int i = 1; i < argc; ++i)
+    {
+        if (strcmp(argv[i], "-d") == 0)
+        {
+
+            if (i + 1 >= argc)
+            {
+                fprintf(stderr, "ERROR: delimeter wasn't specified in the argument '-d'.\n");
+                exit(EXIT_FAILURE);
+            }
+            Delims = argv[i + 1];
+
+            if (strstr(Delims, "\"") != NULL || strstr(Delims, "\\") != NULL)
+            {
+                fprintf(stderr, "ERROR: delimiter can't be \" or \\.\n");
+                exit(EXIT_FAILURE);
+            }
+
+            return;
+        }
+    }
 }
 
 int main(int argc, char *argv[])
