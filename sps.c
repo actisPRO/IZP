@@ -321,9 +321,16 @@ ListElementString* read_commands(int argc, char *argv[])
 
     //strip the first and the last char
     memmove(commandString, commandString + 1, len - 2);
-    commandString[len - 3] = 0;
+    commandString[len - 2 - wasClosed] = 0;
 
-
+    char *token;
+    token = strtok(commandString, ";");
+    while (token != NULL)
+    {
+        list_add(resultHead, token);
+        token = strtok(NULL, ";");
+    }
+    // tokenize and add to the list
 
     return resultHead;
 }
