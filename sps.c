@@ -67,24 +67,85 @@ typedef struct _command {
 //endregion
 
 //region List methods
-void add(ListElementString *head, char *value)
+/*
+ * Creates a new empty List of strings
+ */
+ListElementString* string_list()
 {
-    ListElementString *curr = head;
+    ListElementString *result = NULL;
+    result = malloc(sizeof(ListElementString));
+    result->value = NULL;
+    result->next = NULL;
+
+    return result;
+}
+
+/*
+ * Adds an element to the List of strings
+ */
+void list_add(ListElementString *head, char *value)
+{
+    if (head->value == NULL)
+    {
+        head->value = malloc(strlen(value) + 1);
+        head->value = value;
+        return;
+    }
+
+    ListElementString* curr = head;
     while (curr->next != NULL)
     {
         curr = curr->next;
     }
 
-    curr->next = (ListElementString *) malloc(sizeof(ListElementString));
-    curr->next->value = value;
+    curr->next = (ListElementString*)malloc(sizeof(ListElementString));
+    if (value == NULL)
+    {
+        curr->next->value = NULL;
+    }
+    else
+    {
+        curr->next->value = malloc(strlen(value) + 1);
+        curr->next->value = value;
+    }
     curr->next->next = NULL;
 }
-//endregion
 
-ListElementString strsplit(char *string)
+/*
+ * Sets the value of the specified List element
+ */
+void list_set(ListElementString *head, int index, char *value)
 {
+    ListElementString* curr = head;
+    int i = 0;
+    while (i != index || curr->next != NULL)
+    {
+        curr = curr->next;
+        ++i;
+    }
 
+    curr->value = malloc(strlen(value) + 1);
+    curr->value = value;
 }
+
+/*
+ * Returns number of elements in the List.
+ */
+int list_count(ListElementString *head)
+{
+    int count = 0;
+    if (head->value == NULL) return 0;
+
+    ListElementString* current = head;
+    while (current->next != NULL)
+    {
+        ++count;
+        current = current->next;
+    }
+
+    return count;
+}
+//endregion
 
 CommandName str_to_cmd_name(char *command)
 {
@@ -176,7 +237,10 @@ Command str_to_cmd(char *input)
 
 }
 
+//region Global variables
 char* Delims = " ";
+int HadCustomDelims = 0;
+//endregion
 
 /*
  * Reads delimiters from the argument -d to the global variable delims.
@@ -204,14 +268,70 @@ void read_delims(int argc, char *argv[])
                 exit(EXIT_FAILURE);
             }
 
+            HadCustomDelims = 1;
             return;
         }
     }
 }
 
+ListElementString* read_commands(int argc, char *argv[])
+{
+    ListElementString* resultHead = string_list();
+    int startArg = 1;
+    if (HadCustomDelims == 1) startArg = 3;
+
+    if (argc <= startArg)
+    {
+        fprintf(stderr, "ERROR: Command sequence wasn't specified!\n");
+        exit(EXIT_FAILURE);
+    }
+
+    if (argv[startArg][0] != '\'')
+    {
+        list_add(resultHead, argv[startArg]);
+        return resultHead;
+    }
+
+    //find the last argument (must end with ')
+    int lastArg = startArg;
+    while (argv[lastArg][strlen(argv[lastArg]) - 1] != '\'' && lastArg < argc - 1)
+    {
+        ++lastArg;
+    }
+
+    int wasClosed = 0;
+    if (argv[lastArg][strlen(argv[lastArg]) - 1] == '\'') wasClosed = 1;
+
+    int len = 0;
+    for (int i = startArg; i <= lastArg; ++i)
+    {
+        len += strlen(argv[i]);
+    }
+    len += lastArg - startArg; // spaces
+
+    char commandString[len];
+    commandString[0] = 0;
+
+    for (int i = startArg; i <= lastArg; ++i)
+    {
+        strncat(commandString, argv[i], strlen(argv[i]));
+        strncat(commandString, " ", 1);
+    }
+    len = strlen(commandString);
+
+    //strip the first and the last char
+    memmove(commandString, commandString + 1, len - 2);
+    commandString[len - 3] = 0;
+
+
+
+    return resultHead;
+}
+
 int main(int argc, char *argv[])
 {
     read_delims(argc, argv);
+    read_commands(argc, argv);
 
     return 0;
 }
