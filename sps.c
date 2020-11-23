@@ -64,6 +64,11 @@ typedef struct _command {
     int int_args[2]; // if command_args_type is TwoInt
     int variable; // if command_args_type is Variable
 } Command;
+
+typedef struct _commandElList {
+    Command *value;
+    struct _commandElList *next;
+} CommandElementList;
 //endregion
 
 //region List methods
@@ -80,10 +85,20 @@ ListElementString* string_list()
     return result;
 }
 
+CommandElementList* command_list()
+{
+    CommandElementList *result = NULL;
+    result = malloc(sizeof(CommandElementList));
+    result->value = NULL;
+    result->next = NULL;
+
+    return result;
+}
+
 /*
  * Adds an element to the List of strings
  */
-void list_add(ListElementString *head, char *value)
+void strlist_add(ListElementString *head, char *value)
 {
     if (head->value == NULL)
     {
@@ -111,10 +126,38 @@ void list_add(ListElementString *head, char *value)
     curr->next->next = NULL;
 }
 
+void cmdlist_add(CommandElementList *head, Command *value)
+{
+    if (head->value == NULL)
+    {
+        head->value = malloc(sizeof(Command));
+        head->value = value;
+        return;
+    }
+
+    CommandElementList * curr = head;
+    while (curr->next != NULL)
+    {
+        curr = curr->next;
+    }
+
+    curr->next = malloc(sizeof(CommandElementList));
+    if (value == NULL)
+    {
+        curr->next->value = NULL;
+    }
+    else
+    {
+        curr->next->value = malloc(sizeof(Command));
+        curr->next->value = value;
+    }
+    curr->next->next = NULL;
+}
+
 /*
  * Sets the value of the specified List element
  */
-void list_set(ListElementString *head, int index, char *value)
+void strlist_set(ListElementString *head, int index, char *value)
 {
     ListElementString* curr = head;
     int i = 0;
@@ -131,7 +174,7 @@ void list_set(ListElementString *head, int index, char *value)
 /*
  * Returns number of elements in the List.
  */
-int list_count(ListElementString *head)
+int strlist_count(ListElementString *head)
 {
     int count = 0;
     if (head->value == NULL) return 0;
@@ -234,7 +277,63 @@ CommandType get_cmd_type(CommandName command)
 
 Command str_to_cmd(char *input)
 {
+    char name[32], args[1000];
+    int res = sscanf(input, "%s %s", name, args);
+    Command converted;
 
+    if (res == 0)
+    {
+        fprintf(stderr, "ERROR: something went wrong while converting '%s' to a command.\n", input);
+        exit(EXIT_FAILURE);
+    }
+
+    if (res == 1)
+    {
+        // check if is a selection command
+    }
+
+    CommandName commandName = str_to_cmd_name(name);
+    if (commandName == -1)
+    {
+        fprintf(stderr, "ERROR: '%s' isn't a valid command.\n", name);
+        exit(EXIT_FAILURE);
+    }
+    converted.name = commandName;
+
+    converted.command_args_type = get_args_type(commandName);
+    converted.type = get_cmd_type(commandName);
+
+    if (converted.command_args_type == None && res == 1)
+    {
+        return converted;
+    }
+
+    if (converted.command_args_type == TwoInt)
+    {
+        if (res == 1)
+        {
+            fprintf(stderr, "ERROR: not enough arguments for the command '%s'.", name);
+            exit(EXIT_FAILURE);
+        }
+
+        int R = 0, C = 0;
+        res = sscanf(args, "[%d,%d]", &R, &C);
+        if (res != 2)
+        {
+            fprintf(stderr, "ERROR: not enough arguments for the command '%s'.", name);
+            exit(EXIT_FAILURE);
+        }
+
+        converted.int_args[0] = R;
+        converted.int_args[1] = C;
+
+        return converted;
+    }
+
+    if (converted.command_args_type == String)
+    {
+
+    }
 }
 
 //region Global variables
@@ -274,6 +373,10 @@ void read_delims(int argc, char *argv[])
     }
 }
 
+/*
+ * Reads commands from the sequence and adds them to a new List.
+ * Returns list of strings
+ */
 ListElementString* read_commands(int argc, char *argv[])
 {
     ListElementString* resultHead = string_list();
@@ -288,7 +391,7 @@ ListElementString* read_commands(int argc, char *argv[])
 
     if (argv[startArg][0] != '\'')
     {
-        list_add(resultHead, argv[startArg]);
+        strlist_add(resultHead, argv[startArg]);
         return resultHead;
     }
 
@@ -327,7 +430,7 @@ ListElementString* read_commands(int argc, char *argv[])
     token = strtok(commandString, ";");
     while (token != NULL)
     {
-        list_add(resultHead, token);
+        strlist_add(resultHead, token);
         token = strtok(NULL, ";");
     }
     // tokenize and add to the list
@@ -338,7 +441,7 @@ ListElementString* read_commands(int argc, char *argv[])
 int main(int argc, char *argv[])
 {
     read_delims(argc, argv);
-    read_commands(argc, argv);
+    ListElementString* str_commands = read_commands(argc, argv);
 
     return 0;
 }
