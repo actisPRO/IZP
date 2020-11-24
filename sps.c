@@ -121,7 +121,7 @@ void add_cmdseq(CommandSequence* cmdseq, Command command)
 
 Cell* create_row(char *first_value)
 {
-    Cell* row = malloc(sizeof(Row));
+    Cell* row = malloc(sizeof(Cell));
     if (row != NULL)
     {
         row->value = malloc(strlen(first_value) + 1);
@@ -139,6 +139,28 @@ void add_cell(Cell* firstCell, char* value)
         current = current->next;
     }
     current->next = create_row(value);
+}
+
+Row* create_table(Cell* first_cell)
+{
+    Row* table = malloc(sizeof(Row));
+    if (table != NULL)
+    {
+        table->first_cell = malloc(sizeof(first_cell));
+        table->first_cell = first_cell;
+        table->next = NULL;
+    }
+    return table;
+}
+
+void add_row(Row* firstRow, Cell* firstCell)
+{
+    Row * current = firstRow;
+    while (current->next != NULL)
+    {
+        current = current->next;
+    }
+    current->next = create_table(firstCell);
 }
 
 //endregion
@@ -378,8 +400,10 @@ void load_table(int argc, char* argv[])
     char *cellStr = malloc(1);
     cellStr[0] = '\0';
     Cell* row = malloc(sizeof(Cell));
+    Row* table = malloc(sizeof(Row));
 
     int cell_row_pos = 0;
+    int row_pos = 0;
     while (nextChar != EOF)
     {
         if (isDelim(nextChar)) // here we'll add a new Cell to a Row (which is currently a List of Cells)
@@ -401,7 +425,23 @@ void load_table(int argc, char* argv[])
         }
         else if (nextChar == '\n')
         {
+            if (row_pos == 0)
+            {
+                table = create_table(row);
+            }
+            else
+            {
+                add_row(table, row);
+            }
 
+            ++row_pos;
+
+            row = malloc(sizeof(Cell));
+
+            cell_row_pos = 0;
+            cellLength = 1; // and we'll reallocate memory for the next cell string
+            cellStr = malloc(1);
+            cellStr[0] = '\0';
         }
         else
         {
