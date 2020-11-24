@@ -565,12 +565,33 @@ void fix_table(Row* table)
     }
 }
 
+/*
+ * Debug function, which prints table to stdin.
+ */
+void print_table(Row* table)
+{
+    Row* currentRow = table;
+    while (currentRow != NULL)
+    {
+        Cell* currentCell = currentRow->first_cell;
+        while (currentCell->next != NULL)
+        {
+            printf("%s%c", currentCell->value, Delims[0]);
+            currentCell = currentCell->next;
+        }
+        printf("%s\n", currentCell->value);
+        currentRow = currentRow->next;
+    }
+}
+
 int main(int argc, char* argv[])
 {
     read_delims(argc, argv);
     Row* table = load_table(argc, argv);
     CommandSequence* cmdseq = read_cmds(argc, argv);
     fix_table(table);
+
+    print_table(table);
 
     return 0;
 }
