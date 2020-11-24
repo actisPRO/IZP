@@ -118,6 +118,29 @@ void add_cmdseq(CommandSequence* cmdseq, Command command)
     }
     current->next = create_cmdseq(command);
 }
+
+Cell* create_row(char *first_value)
+{
+    Cell* row = malloc(sizeof(Row));
+    if (row != NULL)
+    {
+        row->value = malloc(strlen(first_value) + 1);
+        row->value = first_value;
+        row->next = NULL;
+    }
+    return row;
+}
+
+void add_cell(Cell* firstCell, char* value)
+{
+    Cell* current = firstCell;
+    while (current->next != NULL)
+    {
+        current = current->next;
+    }
+    current->next = create_row(value);
+}
+
 //endregion
 
 CommandName str_to_cmd_name(char* command)
@@ -293,6 +316,16 @@ char* Delims = " ";
 int HadCustomDelims = 0;
 //endregion
 
+int isDelim(char value)
+{
+    for (int i = 0; i < strlen(Delims); ++i)
+    {
+        if (value == Delims[i]) return 1;
+    }
+
+    return 0;
+}
+
 /*
  * Reads delimiters from the argument -d to the global variable delims.
  * Exits if:
@@ -341,8 +374,43 @@ void load_table(int argc, char* argv[])
     }
 
     char nextChar = (char)fgetc(fptr);
+    int cellLength = 1;
+    char *cellStr = malloc(1);
+    cellStr[0] = '\0';
+    Cell* row = malloc(sizeof(Cell));
+
+    int cell_row_pos = 0;
     while (nextChar != EOF)
     {
+        if (isDelim(nextChar)) // here we'll add a new Cell to a Row (which is currently a List of Cells)
+        {
+            if (cell_row_pos == 0)
+            {
+                row = create_row(cellStr);
+            }
+            else
+            {
+                add_cell(row, cellStr);
+            }
+
+            ++cell_row_pos;
+
+            cellLength = 1; // and we'll reallocate memory for the next cell string
+            cellStr = malloc(1);
+            cellStr[0] = '\0';
+        }
+        else if (nextChar == '\n')
+        {
+
+        }
+        else
+        {
+            // dynamically increasing the size of a cell string
+            cellStr = realloc(cellStr, cellLength + 1);
+            cellStr[cellLength] = '\0';
+            cellStr[cellLength - 1] = nextChar;
+            ++cellLength;
+        }
 
         nextChar = (char)fgetc(fptr);
     }
