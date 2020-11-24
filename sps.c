@@ -16,13 +16,15 @@
 //endregion
 
 //region Enums
-typedef enum _commandType {
+typedef enum _commandType
+{
     ChangeStructure,
     ChangeContent,
     VariableOperation
 } CommandType;
 
-typedef enum _commandName {
+typedef enum _commandName
+{
     irow,
     arow,
     drow,
@@ -42,7 +44,8 @@ typedef enum _commandName {
     var_set // [set]
 } CommandName;
 
-typedef enum _commandArgsType {
+typedef enum _commandArgsType
+{
     None,
     String,
     TwoInt,
@@ -51,7 +54,8 @@ typedef enum _commandArgsType {
 //endregion
 
 //region Data types
-typedef struct _command {
+typedef struct _command
+{
     CommandType type;
     CommandName name;
     CommandArgsType command_args_type;
@@ -60,10 +64,28 @@ typedef struct _command {
     int variable; // if command_args_type is Variable
 } Command;
 
-typedef struct _commandSequence {
+typedef struct _commandSequence
+{
     Command value;
-    struct _commandSequence *next;
+    struct _commandSequence* next;
 } CommandSequence;
+
+typedef struct _cell
+{
+    char* value;
+    struct _cell* next;
+} Cell;
+
+typedef struct _row
+{
+    Cell* first_cell;
+    struct _row* next;
+} Row;
+
+typedef struct _table
+{
+    Row* first_row;
+} Table;
 //endregion
 
 //region List methods
@@ -98,26 +120,26 @@ void add_cmdseq(CommandSequence* cmdseq, Command command)
 }
 //endregion
 
-CommandName str_to_cmd_name(char *command)
+CommandName str_to_cmd_name(char* command)
 {
-    if (strcmp(command, "irow") == 0)       return irow;
-    else if (strcmp(command, "arow") == 0)  return arow;
-    else if (strcmp(command, "drow") == 0)  return drow;
-    else if (strcmp(command, "icol") == 0)  return icol;
-    else if (strcmp(command, "acol") == 0)  return acol;
-    else if (strcmp(command, "dcol") == 0)  return dcol;
-    else if (strcmp(command, "set") == 0)   return set;
+    if (strcmp(command, "irow") == 0) return irow;
+    else if (strcmp(command, "arow") == 0) return arow;
+    else if (strcmp(command, "drow") == 0) return drow;
+    else if (strcmp(command, "icol") == 0) return icol;
+    else if (strcmp(command, "acol") == 0) return acol;
+    else if (strcmp(command, "dcol") == 0) return dcol;
+    else if (strcmp(command, "set") == 0) return set;
     else if (strcmp(command, "clear") == 0) return clear;
-    else if (strcmp(command, "swap") == 0)  return swap;
-    else if (strcmp(command, "sum") == 0)   return sum;
-    else if (strcmp(command, "avg") == 0)   return avg;
+    else if (strcmp(command, "swap") == 0) return swap;
+    else if (strcmp(command, "sum") == 0) return sum;
+    else if (strcmp(command, "avg") == 0) return avg;
     else if (strcmp(command, "count") == 0) return count;
-    else if (strcmp(command, "len") == 0)   return len;
-    else if (strcmp(command, "def") == 0)   return def;
-    else if (strcmp(command, "use") == 0)   return use;
-    else if (strcmp(command, "inc") == 0)   return inc;
+    else if (strcmp(command, "len") == 0) return len;
+    else if (strcmp(command, "def") == 0) return def;
+    else if (strcmp(command, "use") == 0) return use;
+    else if (strcmp(command, "inc") == 0) return inc;
     else if (strcmp(command, "[set]") == 0) return var_set;
-    else                                    return -1;
+    else return -1;
 }
 
 CommandArgsType get_args_type(CommandName command)
@@ -183,7 +205,7 @@ CommandType get_cmd_type(CommandName command)
     }
 }
 
-Command str_to_cmd(char *input)
+Command str_to_cmd(char* input)
 {
     char name[32], args[1000];
     int res = sscanf(input, "%s %s", name, args);
@@ -277,7 +299,7 @@ int HadCustomDelims = 0;
  * Delimiter wasn't specified in the argument.
  * Delimiter contains forbidden symbols (" or \").
  */
-void read_delims(int argc, char *argv[])
+void read_delims(int argc, char* argv[])
 {
     for (int i = 1; i < argc; ++i)
     {
@@ -306,10 +328,10 @@ void read_delims(int argc, char *argv[])
 /*
  * Loads the table from the file, which is loaded from the last argument.
  */
-void load_table(int argc, char *argv[])
+void load_table(int argc, char* argv[])
 {
-    char *fileName = argv[argc - 1];
-    FILE *fptr;
+    char* fileName = argv[argc - 1];
+    FILE* fptr;
     fptr = fopen(fileName, "r");
 
     if (fptr == NULL)
@@ -318,11 +340,11 @@ void load_table(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    char nextChar = (char) fgetc(fptr);
+    char nextChar = (char)fgetc(fptr);
     while (nextChar != EOF)
     {
 
-        nextChar = (char) fgetc(fptr);
+        nextChar = (char)fgetc(fptr);
     }
 
     fclose(fptr);
@@ -331,7 +353,7 @@ void load_table(int argc, char *argv[])
 /*
  * Reads commands from arguments and returns the command sequence.
  */
-CommandSequence* read_cmds(int argc, char *argv[])
+CommandSequence* read_cmds(int argc, char* argv[])
 {
     int cmdArg = 1; // start from
     if (strcmp(argv[cmdArg], "-d") == 0) cmdArg = 3;
@@ -386,7 +408,7 @@ CommandSequence* read_cmds(int argc, char *argv[])
     }
 }
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     read_delims(argc, argv);
     load_table(argc, argv);
