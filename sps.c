@@ -417,9 +417,11 @@ Row* load_table(int argc, char* argv[])
 
     int cell_row_pos = 0;
     int row_pos = 0;
-    while (1)
+    int inQuotes = 0;
+    int nextCharEscaped = 0;
+    while (1) // time for some INFINITE cycles (no). sry im bored.
     {
-        if (isDelim(nextChar)) // here we'll add a new Cell to a Row (which is currently a List of Cells)
+        if (isDelim(nextChar) && !inQuotes) // here we'll add a new Cell to a Row (which is currently a List of Cells)
         {
             if (cell_row_pos == 0)
             {
@@ -456,17 +458,28 @@ Row* load_table(int argc, char* argv[])
             row = malloc(sizeof(Cell));
 
             cell_row_pos = 0;
-            cellLength = 1; // and we'll reallocate memory for the next cell string
+            cellLength = 1; // and we'll allocate memory for the next cell string
             cellStr = malloc(1);
             cellStr[0] = '\0';
+
+            inQuotes = 0;
         }
         else
         {
+            if (nextChar == '"' && !nextCharEscaped) inQuotes = !inQuotes;
+
+            if (inQuotes && nextChar == '\\')
+            {
+                nextCharEscaped = 1;
+            }
+
             // dynamically increasing the size of a cell string
             cellStr = realloc(cellStr, cellLength + 1);
             cellStr[cellLength] = '\0';
             cellStr[cellLength - 1] = nextChar;
             ++cellLength;
+
+            nextCharEscaped = 0;
         }
 
         nextChar = (char)fgetc(fptr);
