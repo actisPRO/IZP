@@ -60,7 +60,7 @@ typedef struct _command {
     CommandType type;
     CommandName name;
     CommandArgsType command_args_type;
-    char string_arg[1000]; // if command_args_type is String
+    char *string_arg; // if command_args_type is String
     int int_args[2]; // if command_args_type is TwoInt
     int variable; // if command_args_type is Variable
 } Command;
@@ -332,7 +332,29 @@ Command str_to_cmd(char *input)
 
     if (converted.command_args_type == String)
     {
+        if (res == 1)
+        {
+            fprintf(stderr, "ERROR: not enough arguments for the command '%s'.", name);
+            exit(EXIT_FAILURE);
+        }
 
+        if (args[0] == '\"')
+        {
+            res = sscanf(input, "%s \"%[^\"]\"", name, args); // rescan using another template (with quotes)
+            if (res != 2)
+            {
+                fprintf(stderr, "ERROR: something went wrong while parsing arguments for the command '%s'.", name);
+                exit(EXIT_FAILURE);
+            }
+
+            converted.string_arg = args;
+        }
+        else
+        {
+            converted.string_arg = args;
+        }
+
+        return converted;
     }
 }
 
