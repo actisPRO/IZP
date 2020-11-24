@@ -303,6 +303,34 @@ void read_delims(int argc, char *argv[])
     }
 }
 
+/*
+ * Loads the table from the file, which is loaded from the last argument.
+ */
+void load_table(int argc, char *argv[])
+{
+    char *fileName = argv[argc - 1];
+    FILE *fptr;
+    fptr = fopen(fileName, "r");
+
+    if (fptr == NULL)
+    {
+        fprintf(stderr, "ERROR: specified FILE can't be opened or FILE wasn't specified.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    char nextChar = (char) fgetc(fptr);
+    while (nextChar != EOF)
+    {
+
+        nextChar = (char) fgetc(fptr);
+    }
+
+    fclose(fptr);
+}
+
+/*
+ * Reads commands from arguments and returns the command sequence.
+ */
 CommandSequence* read_cmds(int argc, char *argv[])
 {
     int cmdArg = 1; // start from
@@ -361,7 +389,7 @@ CommandSequence* read_cmds(int argc, char *argv[])
 int main(int argc, char *argv[])
 {
     read_delims(argc, argv);
-    //get file
+    load_table(argc, argv);
     CommandSequence* cmdseq = read_cmds(argc, argv);
 
     return 0;
