@@ -141,6 +141,19 @@ void add_cell(Cell* firstCell, char* value)
     current->next = create_row(value);
 }
 
+int row_length(Cell* first_cell)
+{
+    Cell* current = first_cell;
+    int count = 0;
+    while (current != NULL)
+    {
+        ++count;
+        current = current->next;
+    }
+
+    return count;
+}
+
 Row* create_table(Cell* first_cell)
 {
     Row* table = malloc(sizeof(Row));
@@ -381,9 +394,9 @@ void read_delims(int argc, char* argv[])
 }
 
 /*
- * Loads the table from the file, which is loaded from the last argument.
+ * Loads the table from the file, specified by the last argument
  */
-void load_table(int argc, char* argv[])
+Row* load_table(int argc, char* argv[])
 {
     char* fileName = argv[argc - 1];
     FILE* fptr;
@@ -404,7 +417,7 @@ void load_table(int argc, char* argv[])
 
     int cell_row_pos = 0;
     int row_pos = 0;
-    while (nextChar != EOF)
+    while (1)
     {
         if (isDelim(nextChar)) // here we'll add a new Cell to a Row (which is currently a List of Cells)
         {
@@ -423,8 +436,10 @@ void load_table(int argc, char* argv[])
             cellStr = malloc(1);
             cellStr[0] = '\0';
         }
-        else if (nextChar == '\n')
+        else if (nextChar == '\n' || nextChar == EOF)
         {
+            add_cell(row, cellStr);
+
             if (row_pos == 0)
             {
                 table = create_table(row);
@@ -433,6 +448,8 @@ void load_table(int argc, char* argv[])
             {
                 add_row(table, row);
             }
+
+            if (nextChar == EOF) break;
 
             ++row_pos;
 
@@ -456,6 +473,8 @@ void load_table(int argc, char* argv[])
     }
 
     fclose(fptr);
+
+    return table;
 }
 
 /*
@@ -475,7 +494,7 @@ CommandSequence* read_cmds(int argc, char* argv[])
     int commandStrLength = 0;
     for (int i = cmdArg; i < argc - 1; ++i) // the final argument is FILE
     {
-        commandStrLength += strlen(argv[i]) + 1;
+        commandStrLength += (int) strlen(argv[i]) + 1;
     }
     char commandStr[commandStrLength];
     commandStr[0] = 0;
@@ -516,11 +535,42 @@ CommandSequence* read_cmds(int argc, char* argv[])
     }
 }
 
+/*
+ * If some rows have more cells then another, this procedure will add empty cells, where it's required
+ */
+void fix_table(Row* table)
+{
+    Row* currentRow = table;
+    // first get the longest row
+    int max = 0;
+    while (currentRow != NULL)
+    {
+        int len = row_length(currentRow->first_cell);
+        if (len > max) max = len;
+        currentRow = currentRow->next;
+    }
+
+    currentRow = table;
+    while (currentRow != NULL)
+    {
+        int len = row_length(currentRow->first_cell);
+        if (len < max)
+        {
+            for (int i = 0; i < max - len; ++i)
+            {
+                add_cell(currentRow->first_cell, "\0");
+            }
+        }
+        currentRow = currentRow->next;
+    }
+}
+
 int main(int argc, char* argv[])
 {
     read_delims(argc, argv);
-    load_table(argc, argv);
+    Row* table = load_table(argc, argv);
     CommandSequence* cmdseq = read_cmds(argc, argv);
+    fix_table(table);
 
     return 0;
 }
