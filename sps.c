@@ -51,142 +51,50 @@ typedef enum _commandArgsType {
 //endregion
 
 //region Data types
-typedef struct _strListEl {
-    char *value;
-    struct _strListEl *next;
-} ListElementString;
-
 typedef struct _command {
     CommandType type;
     CommandName name;
     CommandArgsType command_args_type;
-    char *string_arg; // if command_args_type is String
+    char string_arg[1001]; // if command_args_type is String
     int int_args[2]; // if command_args_type is TwoInt
     int variable; // if command_args_type is Variable
 } Command;
 
-typedef struct _commandElList {
-    Command *value;
-    struct _commandElList *next;
-} CommandElementList;
+typedef struct _commandSequence {
+    Command value;
+    struct _commandSequence *next;
+} CommandSequence;
 //endregion
 
 //region List methods
-/*
- * Creates a new empty List of strings
- */
-ListElementString* string_list()
+CommandSequence* create_cmdseq(Command cmd)
 {
-    ListElementString *result = NULL;
-    result = malloc(sizeof(ListElementString));
-    result->value = NULL;
-    result->next = NULL;
-
-    return result;
+    CommandSequence* cmdseq = malloc(sizeof(CommandSequence));
+    if (cmdseq != NULL)
+    {
+        cmdseq->value = cmd;
+        cmdseq->next = NULL;
+    }
+    return cmdseq;
 }
 
-CommandElementList* command_list()
+void delete_cmdseq(CommandSequence* cmdseq)
 {
-    CommandElementList *result = NULL;
-    result = malloc(sizeof(CommandElementList));
-    result->value = NULL;
-    result->next = NULL;
-
-    return result;
+    if (cmdseq->next != NULL)
+    {
+        delete_cmdseq(cmdseq->next);
+    }
+    free(cmdseq);
 }
 
-/*
- * Adds an element to the List of strings
- */
-void strlist_add(ListElementString *head, char *value)
+void add_cmdseq(CommandSequence* cmdseq, Command command)
 {
-    if (head->value == NULL)
-    {
-        head->value = malloc(strlen(value) + 1);
-        head->value = value;
-        return;
-    }
-
-    ListElementString* curr = head;
-    while (curr->next != NULL)
-    {
-        curr = curr->next;
-    }
-
-    curr->next = (ListElementString*)malloc(sizeof(ListElementString));
-    if (value == NULL)
-    {
-        curr->next->value = NULL;
-    }
-    else
-    {
-        curr->next->value = malloc(strlen(value) + 1);
-        curr->next->value = value;
-    }
-    curr->next->next = NULL;
-}
-
-void cmdlist_add(CommandElementList *head, Command *value)
-{
-    if (head->value == NULL)
-    {
-        head->value = malloc(sizeof(Command));
-        head->value = value;
-        return;
-    }
-
-    CommandElementList * curr = head;
-    while (curr->next != NULL)
-    {
-        curr = curr->next;
-    }
-
-    curr->next = malloc(sizeof(CommandElementList));
-    if (value == NULL)
-    {
-        curr->next->value = NULL;
-    }
-    else
-    {
-        curr->next->value = malloc(sizeof(Command));
-        curr->next->value = value;
-    }
-    curr->next->next = NULL;
-}
-
-/*
- * Sets the value of the specified List element
- */
-void strlist_set(ListElementString *head, int index, char *value)
-{
-    ListElementString* curr = head;
-    int i = 0;
-    while (i != index || curr->next != NULL)
-    {
-        curr = curr->next;
-        ++i;
-    }
-
-    curr->value = malloc(strlen(value) + 1);
-    curr->value = value;
-}
-
-/*
- * Returns number of elements in the List.
- */
-int strlist_count(ListElementString *head)
-{
-    int count = 0;
-    if (head->value == NULL) return 0;
-
-    ListElementString* current = head;
+    CommandSequence* current = cmdseq;
     while (current->next != NULL)
     {
-        ++count;
         current = current->next;
     }
-
-    return count;
+    current->next = create_cmdseq(command);
 }
 //endregion
 
@@ -347,11 +255,11 @@ Command str_to_cmd(char *input)
                 exit(EXIT_FAILURE);
             }
 
-            converted.string_arg = args;
+            strcpy(converted.string_arg, args);
         }
         else
         {
-            converted.string_arg = args;
+            strcpy(converted.string_arg, args);
         }
 
         return converted;
@@ -395,75 +303,66 @@ void read_delims(int argc, char *argv[])
     }
 }
 
-/*
- * Reads commands from the sequence and adds them to a new List.
- * Returns list of strings
- */
-ListElementString* read_commands(int argc, char *argv[])
+CommandSequence* read_cmds(int argc, char *argv[])
 {
-    ListElementString* resultHead = string_list();
-    int startArg = 1;
-    if (HadCustomDelims == 1) startArg = 3;
+    int cmdArg = 1; // start from
+    if (strcmp(argv[cmdArg], "-d") == 0) cmdArg = 3;
 
-    if (argc <= startArg)
+    if (argc <= cmdArg)
     {
-        fprintf(stderr, "ERROR: Command sequence wasn't specified!\n");
+        fprintf(stderr, "ERROR: not enough arguments!\n");
         exit(EXIT_FAILURE);
     }
 
-    if (argv[startArg][0] != '\'')
+    int commandStrLength = 0;
+    for (int i = cmdArg; i < argc - 1; ++i) // the final argument is FILE
     {
-        strlist_add(resultHead, argv[startArg]);
-        return resultHead;
+        commandStrLength += strlen(argv[i]) + 1;
+    }
+    char commandStr[commandStrLength];
+    commandStr[0] = 0;
+    for (int i = cmdArg; i < argc - 1; ++i)
+    {
+        strncat(commandStr, argv[i], strlen(argv[i]) + 1);
+        strncat(commandStr, " ", 1);
     }
 
-    //find the last argument (must end with ')
-    int lastArg = startArg;
-    while (argv[lastArg][strlen(argv[lastArg]) - 1] != '\'' && lastArg < argc - 1)
+    // checks if there is only one command (w/o quotes)
+    if (argv[cmdArg][0] != '\'')
     {
-        ++lastArg;
+        Command cmd = str_to_cmd(commandStr);
+        CommandSequence* result = create_cmdseq(cmd);
+        return result;
     }
-
-    int wasClosed = 0;
-    if (argv[lastArg][strlen(argv[lastArg]) - 1] == '\'') wasClosed = 1;
-
-    int len = 0;
-    for (int i = startArg; i <= lastArg; ++i)
+    else
     {
-        len += strlen(argv[i]);
-    }
-    len += lastArg - startArg; // spaces
+        //stripping the first and the last character
+        memmove(commandStr, commandStr + 1, commandStrLength - 2);
+        commandStr[commandStrLength - 3] = 0;
 
-    char commandString[len];
-    commandString[0] = 0;
+        //now tokenize and parse
+        char* token;
+        token = strtok(commandStr, ";");
+        Command nextCmd = str_to_cmd(token);
+        CommandSequence* result = create_cmdseq(nextCmd);
 
-    for (int i = startArg; i <= lastArg; ++i)
-    {
-        strncat(commandString, argv[i], strlen(argv[i]));
-        strncat(commandString, " ", 1);
-    }
-    len = strlen(commandString);
-
-    //strip the first and the last char
-    memmove(commandString, commandString + 1, len - 2);
-    commandString[len - 2 - wasClosed] = 0;
-
-    char *token;
-    token = strtok(commandString, ";");
-    while (token != NULL)
-    {
-        strlist_add(resultHead, token);
         token = strtok(NULL, ";");
-    }
-    // tokenize and add to the list
+        while (token != NULL)
+        {
+            nextCmd = str_to_cmd(token);
+            add_cmdseq(result, nextCmd);
+            token = strtok(NULL, ";");
+        }
 
-    return resultHead;
+        return result;
+    }
 }
 
 int main(int argc, char *argv[])
 {
     read_delims(argc, argv);
-    ListElementString* str_commands = read_commands(argc, argv);
+    //get file
+    CommandSequence* cmdseq = read_cmds(argc, argv);
 
     return 0;
 }
