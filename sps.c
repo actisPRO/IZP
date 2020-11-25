@@ -20,7 +20,8 @@ typedef enum _commandType
 {
     ChangeStructure,
     ChangeContent,
-    VariableOperation
+    VariableOperation,
+    Selection
 } CommandType;
 
 typedef enum _commandName
@@ -265,7 +266,7 @@ CommandType get_cmd_type(CommandName command)
 
 Command str_to_cmd(char* input)
 {
-    char name[32], args[1000];
+    char name[64], args[1000];
     int res = sscanf(input, "%s %s", name, args);
     Command converted;
 
@@ -275,9 +276,9 @@ Command str_to_cmd(char* input)
         exit(EXIT_FAILURE);
     }
 
-    if (res == 1)
+    if (res == 1 && input[0] == '[')
     {
-        // check if is a selection command
+
     }
 
     CommandName commandName = str_to_cmd_name(name);
@@ -314,8 +315,6 @@ Command str_to_cmd(char* input)
 
         converted.int_args[0] = R;
         converted.int_args[1] = C;
-
-        return converted;
     }
 
     if (converted.command_args_type == String)
@@ -341,14 +340,26 @@ Command str_to_cmd(char* input)
         {
             strcpy(converted.string_arg, args);
         }
-
-        return converted;
     }
+
+    if (converted.command_args_type == Variable)
+    {
+        int variable = args[1] - 48;
+        if (variable < 0 || variable > 9 || strlen(args) > 2)
+        {
+            fprintf(stderr, "ERROR: %s has no correct variable argument.", input);
+            exit(EXIT_FAILURE);
+        }
+
+        converted.variable = variable;
+    }
+    return converted;
 }
 
 //region Global variables
 char* Delims = " ";
 int HadCustomDelims = 0;
+char* Variables[10];
 //endregion
 
 int isDelim(char value)
