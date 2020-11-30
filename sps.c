@@ -396,7 +396,7 @@ Command str_to_cmd(char* input)
 
             int len = strlen(input) - 6;
             char str[len];
-            for (int i = 6; i < strlen(input) - 1; ++i) // -1 because we don't need a closing bracket
+            for (int i = 6; i < (int) strlen(input) - 1; ++i) // -1 because we don't need a closing bracket
                 str[i - 6] = input[i];
             str[len - 1] = 0;
 
@@ -414,7 +414,7 @@ Command str_to_cmd(char* input)
 
             int charNum = 0;
             int tokenNum = 0;
-            for (int i = 0; i < len; ++i)
+            for (int i = 0; i < (int) len; ++i)
             {
                 if (input[i] != ',')
                 {
@@ -485,7 +485,7 @@ Command str_to_cmd(char* input)
     }
 
     CommandName commandName = str_to_cmd_name(name);
-    if (commandName == -1)
+    if ((int) commandName == -1)
     {
         fprintf(stderr, "ERROR: '%s' isn't a valid command.\n", name);
         exit(EXIT_FAILURE);
@@ -562,7 +562,7 @@ Command str_to_cmd(char* input)
 
 int isDelim(char value)
 {
-    for (int i = 0; i < strlen(Delims); ++i)
+    for (int i = 0; i < (int) strlen(Delims); ++i)
     {
         if (value == Delims[i]) return 1;
     }
@@ -764,7 +764,7 @@ void add_columns_end(Row* table, unsigned int count)
     Row* current = table;
     while (current != NULL)
     {
-        for (int i = 1; i <= count; ++i)
+        for (unsigned int i = 1; i <= count; ++i)
             add_cell(current->first_cell, "\0");
         current = current->next;
     }
@@ -773,7 +773,7 @@ void add_columns_end(Row* table, unsigned int count)
 void add_rows_end(Row* table, unsigned int count)
 {
     if (count < 1) return;
-    for (int i = 1; i <= count; ++i)
+    for (unsigned int i = 1; i <= count; ++i)
     {
         Cell* new = create_row("\0");
         for (int j = 2; j <= ColumnCount; ++j)
