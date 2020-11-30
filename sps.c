@@ -258,8 +258,11 @@ int RowCount = 0;
 int ColumnCount = 0;
 
 Selection CurrentSelection;
+Selection VariableSelection;
+int vs_isset = 0;
 //endregion
 
+//region Command operations
 CommandName str_to_cmd_name(char* command)
 {
     if (strcmp(command, "irow") == 0) return irow;
@@ -566,6 +569,7 @@ Command str_to_cmd(char* input)
 
     return converted;
 }
+//endregion
 
 int isDelim(char value)
 {
@@ -764,7 +768,7 @@ CommandSequence* read_cmds(int argc, char* argv[])
     }
 }
 
-//region Table operation
+//region Table operations
 void add_columns_end(Row* table, unsigned int count)
 {
     if (count < 1) return;
@@ -792,7 +796,6 @@ void add_rows_end(Row* table, unsigned int count)
 
     RowCount += count;
 }
-//endregion
 
 /*
  * If some rows have more cells then another, this procedure will add empty cells, where it's required
@@ -824,6 +827,7 @@ void fix_table(Row* table)
         currentRow = currentRow->next;
     }
 }
+//endregion
 
 /*
  * Debug function, which prints table to stdin.
@@ -891,6 +895,12 @@ void change_selection(Row* table, Command cmd)
     case FindString:
         break;
     case FromVariable:
+        if (!vs_isset)
+        {
+            fprintf(stderr, "ERROR: unable to execute command [_], variable is not set.\n");
+            exit(EXIT_FAILURE);
+        }
+        CurrentSelection = VariableSelection;
         break;
     }
 }
