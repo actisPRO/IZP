@@ -15,13 +15,18 @@
 #include <string.h>
 //endregion
 
+//region Defines
+#define ROW 0
+#define COL 0
+//endregion
+
 //region Enums
 typedef enum _commandType
 {
     ChangeStructure,
     ChangeContent,
     VariableOperation,
-    Selection
+    SelectionOperation
 } CommandType;
 
 typedef enum _commandName
@@ -73,7 +78,7 @@ typedef struct _command
     CommandType type;
     CommandName name;
     CommandArgsType command_args_type;
-    char string_arg[1001]; // if command_args_type is String or type is Selection
+    char string_arg[1001]; // if command_args_type is String or type is SelectionOperation
     int int_args[2]; // if command_args_type is TwoInt
     int variable; // if command_args_type is Variable
     SelectionType selection_type;
@@ -102,6 +107,11 @@ typedef struct _table
 {
     Row* first_row;
 } Table;
+
+typedef struct _selection {
+    int top_left[2];
+    int down_right[2];
+} Selection;
 //endregion
 
 //region List methods
@@ -157,7 +167,7 @@ void add_cell(Cell* firstCell, char* value)
     current->next = create_row(value);
 }
 
-int row_length(Cell* first_cell)
+int cell_count(Cell* first_cell)
 {
     Cell* current = first_cell;
     int count = 0;
@@ -244,8 +254,10 @@ char* Delims = " ";
 int HadCustomDelims = 0;
 char* Variables[10];
 
-int row_count = 0;
-int column_count = 0;
+int RowCount = 0;
+int ColumnCount = 0;
+
+Selection CurrentSelection;
 //endregion
 
 CommandName str_to_cmd_name(char* command)
@@ -348,7 +360,7 @@ Command str_to_cmd(char* input)
     if (input[0] == '[') // selection commands
     {
         converted.name = select;
-        converted.type = Selection;
+        converted.type = SelectionOperation;
         if (strcmp(input, "[_,_]") == 0)
         {
             converted.selection_type = Full;
@@ -452,12 +464,12 @@ Command str_to_cmd(char* input)
                 return converted;
             } //[R,C]
 
-            if (content[2][0] == '_') R2 = row_count;
+            if (content[2][0] == '_') R2 = RowCount;
             else R2 = atoi(content[2]);
 
             converted.selection_type = WindowSelection;
 
-            if (content[3][0] == '_') C2 = column_count;
+            if (content[3][0] == '_') C2 = ColumnCount;
             else C2 = atoi(content[3]);
 
             if (R2 <= 0 || C2 <= 0)
@@ -745,6 +757,20 @@ CommandSequence* read_cmds(int argc, char* argv[])
     }
 }
 
+//region Table operation
+void add_columns_to_end(Row* table, unsigned int count)
+{
+    if (count < 1) return;
+    Row* current = table;
+    while (current != NULL)
+    {
+        for (int i = 1; i <= count; ++i)
+            add_cell(current->first_cell, "\0");
+        current = current->next;
+    }
+}
+//endregion
+
 /*
  * If some rows have more cells then another, this procedure will add empty cells, where it's required
  */
@@ -755,16 +781,16 @@ void fix_table(Row* table)
     int max = 0;
     while (currentRow != NULL)
     {
-        int len = row_length(currentRow->first_cell);
+        int len = cell_count(currentRow->first_cell);
         if (len > max) max = len;
         currentRow = currentRow->next;
     }
-    column_count = max;
+    ColumnCount = max;
 
     currentRow = table;
     while (currentRow != NULL)
     {
-        int len = row_length(currentRow->first_cell);
+        int len = cell_count(currentRow->first_cell);
         if (len < max)
         {
             for (int i = 0; i < max - len; ++i)
@@ -795,14 +821,77 @@ void print_table(Row* table)
     }
 }
 
+void change_selection(Row* table, Command cmd)
+{
+    switch (cmd.selection_type)
+    {
+    case CellSelection:
+        break;
+    case RowSelection:
+        break;
+    case ColumnSelection:
+        if (ColumnCount < cmd.C1) add_columns_to_end(table, cmd.C1 - ColumnCount);
+        CurrentSelection.top_left[ROW] = 1;
+        CurrentSelection.top_left[COL] = cmd.C1;
+        CurrentSelection.down_right[ROW] = RowCount;
+        CurrentSelection.down_right[COL] = cmd.C1;
+        break;
+    case WindowSelection:
+        break;
+    case Full:
+        CurrentSelection.top_left[ROW] = 1;
+        CurrentSelection.down_right[COL] = 1;
+        CurrentSelection.down_right[ROW] = RowCount;
+        CurrentSelection.down_right[COL] = ColumnCount;
+        break;
+    case Min:
+        break;
+    case Max:
+        break;
+    case FindString:
+        break;
+    case FromVariable:
+        break;
+    }
+}
+
+void run_commands(Row* table, CommandSequence* cmdseq)
+{
+    CommandSequence* current_command = cmdseq;
+    while (current_command != NULL)
+    {
+        Command cmd = current_command->value;
+        switch (cmd.type)
+        {
+        case ChangeStructure:
+            break;
+        case ChangeContent:
+            break;
+        case VariableOperation:
+            break;
+        case SelectionOperation:
+            change_selection(table, cmd);
+            break;
+        }
+
+        current_command = current_command->next;
+    }
+}
+
 int main(int argc, char* argv[])
 {
     read_delims(argc, argv);
     Row* table = load_table(argc, argv);
     fix_table(table);
-    row_count = rows_count(table);
+    RowCount = rows_count(table);
+
+    CurrentSelection.top_left[ROW] = 1;
+    CurrentSelection.top_left[COL] = 1;
+    CurrentSelection.down_right[ROW] = RowCount;
+    CurrentSelection.down_right[COL] = ColumnCount;
 
     CommandSequence* cmdseq = read_cmds(argc, argv);
+    run_commands(table, cmdseq);
 
     print_table(table);
 
