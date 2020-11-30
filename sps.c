@@ -758,7 +758,7 @@ CommandSequence* read_cmds(int argc, char* argv[])
 }
 
 //region Table operation
-void add_columns_to_end(Row* table, unsigned int count)
+void add_columns_end(Row* table, unsigned int count)
 {
     if (count < 1) return;
     Row* current = table;
@@ -767,6 +767,18 @@ void add_columns_to_end(Row* table, unsigned int count)
         for (int i = 1; i <= count; ++i)
             add_cell(current->first_cell, "\0");
         current = current->next;
+    }
+}
+
+void add_rows_end(Row* table, unsigned int count)
+{
+    if (count < 1) return;
+    for (int i = 1; i <= count; ++i)
+    {
+        Cell* new = create_row("\0");
+        for (int j = 2; j <= ColumnCount; ++j)
+            add_cell(new, "\0");
+        add_row(table, new);
     }
 }
 //endregion
@@ -828,9 +840,14 @@ void change_selection(Row* table, Command cmd)
     case CellSelection:
         break;
     case RowSelection:
+        if (RowCount < cmd.R1) add_rows_end(table, cmd.R1 - ColumnCount);
+        CurrentSelection.top_left[ROW] = cmd.R1;
+        CurrentSelection.top_left[COL] = 1;
+        CurrentSelection.down_right[ROW] = cmd.R1;
+        CurrentSelection.down_right[COL] = ColumnCount;
         break;
     case ColumnSelection:
-        if (ColumnCount < cmd.C1) add_columns_to_end(table, cmd.C1 - ColumnCount);
+        if (ColumnCount < cmd.C1) add_columns_end(table, cmd.C1 - ColumnCount);
         CurrentSelection.top_left[ROW] = 1;
         CurrentSelection.top_left[COL] = cmd.C1;
         CurrentSelection.down_right[ROW] = RowCount;
