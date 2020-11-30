@@ -211,6 +211,32 @@ int starts_with(const char *pre, const char *str)
 {
     return strncmp(pre, str, strlen(pre)) == 0;
 }
+
+void split_to_array(char* input, char output[4][32], char delim, int output_size)
+{
+    int len = strlen(input);
+    int charNum = 0;
+    int tokenNum = 0;
+    for (int i = 0; i < len; ++i)
+    {
+        if (tokenNum >= output_size)
+        {
+            break;
+        }
+
+        if (input[i] != delim)
+        {
+            output[tokenNum][charNum] = input[i];
+            ++charNum;
+        }
+        else
+        {
+            output[tokenNum][charNum] = '\0';
+            ++tokenNum;
+            charNum = 0;
+        }
+    }
+}
 //endregion
 
 //region Global variables
@@ -371,24 +397,35 @@ Command str_to_cmd(char* input)
             input[len-2] = 0;
 
             int R1, C1, R2, C2;
-            char* token;
+            char content[4][32];
+            for (int i = 0; i <= 4; ++i) content[i][0] = 0;
 
-            token = strtok(input, ",");
-            if (token != NULL && token[0] == '_') //[_,C]
+            int charNum = 0;
+            int tokenNum = 0;
+            for (int i = 0; i < len; ++i)
+            {
+                if (input[i] != ',')
+                {
+                    content[tokenNum][charNum] = input[i];
+                    ++charNum;
+                }
+                else
+                {
+                    content[tokenNum][charNum] = '\0';
+                    ++tokenNum;
+                    charNum = 0;
+                }
+            }
+
+            if (content[0][0] == '_') //[_,C]
             {
                 converted.selection_type = ColumnSelection;
-                token = strtok(NULL, "[,]");
-                C1 = atoi(token);
-                if (token <= 0)
-                {
-                    fprintf(stderr, "ERROR: unable to parse command %s\n", input);
-                    exit(EXIT_FAILURE);
-                }
+                C1 = atoi(content[1]);
 
                 converted.C1 = C1;
                 return converted;
             }
-            R1 = atoi(token);
+            R1 = atoi(content[0]);
             if (R1 <= 0)
             {
                 fprintf(stderr, "ERROR: unable to parse command %s\n", input);
@@ -396,13 +433,12 @@ Command str_to_cmd(char* input)
             }
             converted.R1 = R1;
 
-            token = strtok(NULL, ",");
-            if (token != NULL && token[0] == '_') //[R,_]
+            if (content[1][0] == '_' && content[2][0] == 0 && content[3][0] == 0) //[R,_]
             {
                 converted.selection_type = RowSelection;
                 return converted;
             }
-            C1 = atoi(token);
+            C1 = atoi(content[1]);
             if (C1 <= 0)
             {
                 fprintf(stderr, "ERROR: unable to parse command %s\n", input);
@@ -410,21 +446,19 @@ Command str_to_cmd(char* input)
             }
             converted.C1 = C1;
 
-            token = strtok(NULL, ",");
-            if (token == NULL)
+            if (content[2][0] == 0)
             {
                 converted.selection_type = CellSelection;
                 return converted;
             } //[R,C]
 
-            if (token[0] == '_') R2 = row_count;
-            else R2 = atoi(token);
+            if (content[2][0] == '_') R2 = row_count;
+            else R2 = atoi(content[2]);
 
             converted.selection_type = WindowSelection;
 
-            token = strtok(NULL, ",");
-            if (token != NULL && token[0] == '_') C2 = column_count;
-            else C2 = atoi(token);
+            if (content[3][0] == '_') C2 = column_count;
+            else C2 = atoi(content[3]);
 
             if (R2 <= 0 || C2 <= 0)
             {
