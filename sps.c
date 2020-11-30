@@ -482,6 +482,8 @@ Command str_to_cmd(char* input)
                 fprintf(stderr, "ERROR: R1 or C1 can't be bigger then R2 or C2 in the command %s\n", input);
                 exit(EXIT_FAILURE);
             }
+            converted.R2 = R2;
+            converted.C2 = C2;
 
             return converted;
         }
@@ -773,6 +775,8 @@ void add_columns_end(Row* table, unsigned int count)
             add_cell(current->first_cell, "\0");
         current = current->next;
     }
+
+    ColumnCount += count;
 }
 
 void add_rows_end(Row* table, unsigned int count)
@@ -785,6 +789,8 @@ void add_rows_end(Row* table, unsigned int count)
             add_cell(new, "\0");
         add_row(table, new);
     }
+
+    RowCount += count;
 }
 //endregion
 
@@ -866,7 +872,7 @@ void change_selection(Row* table, Command cmd)
         break;
     case WindowSelection:
         if (ColumnCount < cmd.C2) add_columns_end(table, cmd.C2 - ColumnCount);
-        if (RowCount < cmd.R2) add_rows_end(table, cmd.R2 - ColumnCount);
+        if (RowCount < cmd.R2) add_rows_end(table, cmd.R2 - RowCount);
         CurrentSelection.top_left[ROW] = cmd.R1;
         CurrentSelection.top_left[COL] = cmd.C1;
         CurrentSelection.down_right[ROW] = cmd.R2;
