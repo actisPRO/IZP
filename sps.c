@@ -838,6 +838,12 @@ void change_selection(Row* table, Command cmd)
     switch (cmd.selection_type)
     {
     case CellSelection:
+        if (ColumnCount < cmd.C1) add_columns_end(table, cmd.C1 - ColumnCount);
+        if (RowCount < cmd.R1) add_rows_end(table, cmd.R1 - ColumnCount);
+        CurrentSelection.top_left[ROW] = cmd.R1;
+        CurrentSelection.top_left[COL] = cmd.C1;
+        CurrentSelection.down_right[ROW] = cmd.R1;
+        CurrentSelection.down_right[COL] = cmd.C1;
         break;
     case RowSelection:
         if (RowCount < cmd.R1) add_rows_end(table, cmd.R1 - ColumnCount);
