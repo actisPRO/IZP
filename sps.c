@@ -477,6 +477,11 @@ Command str_to_cmd(char* input)
                 fprintf(stderr, "ERROR: unable to parse command %s\n", input);
                 exit(EXIT_FAILURE);
             }
+            if (R1 > R2 || C1 > C2)
+            {
+                fprintf(stderr, "ERROR: R1 or C1 can't be bigger then R2 or C2 in the command %s\n", input);
+                exit(EXIT_FAILURE);
+            }
 
             return converted;
         }
@@ -860,6 +865,12 @@ void change_selection(Row* table, Command cmd)
         CurrentSelection.down_right[COL] = cmd.C1;
         break;
     case WindowSelection:
+        if (ColumnCount < cmd.C2) add_columns_end(table, cmd.C2 - ColumnCount);
+        if (RowCount < cmd.R2) add_rows_end(table, cmd.R2 - ColumnCount);
+        CurrentSelection.top_left[ROW] = cmd.R1;
+        CurrentSelection.top_left[COL] = cmd.C1;
+        CurrentSelection.down_right[ROW] = cmd.R2;
+        CurrentSelection.down_right[COL] = cmd.C2;
         break;
     case Full:
         CurrentSelection.top_left[ROW] = 1;
