@@ -42,7 +42,8 @@ typedef enum _commandName
     def,
     use,
     inc,
-    var_set // [set]
+    var_set, // [set]
+    select // for all selection commands
 } CommandName;
 
 typedef enum _commandArgsType
@@ -52,6 +53,18 @@ typedef enum _commandArgsType
     TwoInt,
     Variable
 } CommandArgsType;
+
+typedef enum _selectionType {
+    CellSelection,
+    RowSelection,
+    ColumnSelection,
+    WindowSelection,
+    Full,
+    Min,
+    Max,
+    FindString,
+    FromVariable
+} SelectionType;
 //endregion
 
 //region Data types
@@ -60,9 +73,11 @@ typedef struct _command
     CommandType type;
     CommandName name;
     CommandArgsType command_args_type;
-    char string_arg[1001]; // if command_args_type is String
+    char string_arg[1001]; // if command_args_type is String or type is Selection
     int int_args[2]; // if command_args_type is TwoInt
     int variable; // if command_args_type is Variable
+    SelectionType selection_type;
+    int R1, C1, R2, C2;
 } Command;
 
 typedef struct _commandSequence
@@ -177,6 +192,34 @@ void add_row(Row* firstRow, Cell* firstCell)
     current->next = create_table(firstCell);
 }
 
+unsigned int rows_count(Row* firstRow)
+{
+    int count = 1;
+    while (firstRow->next != NULL)
+    {
+        ++count;
+        firstRow = firstRow->next;
+    }
+
+    return count;
+}
+
+//endregion
+
+//region Utils
+int starts_with(const char *pre, const char *str)
+{
+    return strncmp(pre, str, strlen(pre)) == 0;
+}
+//endregion
+
+//region Global variables
+char* Delims = " ";
+int HadCustomDelims = 0;
+char* Variables[10];
+
+int row_count = 0;
+int column_count = 0;
 //endregion
 
 CommandName str_to_cmd_name(char* command)
@@ -276,9 +319,123 @@ Command str_to_cmd(char* input)
         exit(EXIT_FAILURE);
     }
 
-    if (res == 1 && input[0] == '[')
+    if (input[0] == '[') // selection commands
     {
+        converted.name = select;
+        converted.type = Selection;
+        if (strcmp(input, "[_,_]") == 0)
+        {
+            converted.selection_type = Full;
+        }
+        else if (strcmp(input, "[min]") == 0)
+        {
+            converted.selection_type = Min;
+        }
+        else if (strcmp(input, "[max]") == 0)
+        {
+            converted.selection_type = Max;
+        }
+        else if (strcmp(input, "[_]") == 0)
+        {
+            converted.selection_type = FromVariable;
+        }
+        else if (starts_with("[_,", input) == 1) //[_,C]
+        {
+            int col = 0;
+            res = sscanf(input, "[_,%d]", &col);
+            if (res == 0)
+            {
+                fprintf(stderr, "ERROR: something went wrong while converting '%s' to a command.\n", input);
+                exit(EXIT_FAILURE);
+            }
 
+            converted.selection_type = ColumnSelection;
+            converted.C1 = col;
+        }
+        else if (starts_with("[find ", input) == 1)
+        {
+            converted.selection_type = FindString;
+
+            int len = strlen(input) - 6;
+            char str[len];
+            for (int i = 6; i < strlen(input) - 1; ++i) // -1 because we don't need a closing bracket
+                str[i - 6] = input[i];
+            str[len - 1] = 0;
+
+            strcpy(converted.string_arg, str);
+        }
+        else
+        {
+            size_t len = strlen(input);
+            memmove(input, input+1, len-2);
+            input[len-2] = 0;
+
+            int R1, C1, R2, C2;
+            char* token;
+
+            token = strtok(input, ",");
+            if (token != NULL && token[0] == '_') //[_,C]
+            {
+                converted.selection_type = ColumnSelection;
+                token = strtok(NULL, "[,]");
+                C1 = atoi(token);
+                if (token <= 0)
+                {
+                    fprintf(stderr, "ERROR: unable to parse command %s\n", input);
+                    exit(EXIT_FAILURE);
+                }
+
+                converted.C1 = C1;
+                return converted;
+            }
+            R1 = atoi(token);
+            if (R1 <= 0)
+            {
+                fprintf(stderr, "ERROR: unable to parse command %s\n", input);
+                exit(EXIT_FAILURE);
+            }
+            converted.R1 = R1;
+
+            token = strtok(NULL, ",");
+            if (token != NULL && token[0] == '_') //[R,_]
+            {
+                converted.selection_type = RowSelection;
+                return converted;
+            }
+            C1 = atoi(token);
+            if (C1 <= 0)
+            {
+                fprintf(stderr, "ERROR: unable to parse command %s\n", input);
+                exit(EXIT_FAILURE);
+            }
+            converted.C1 = C1;
+
+            token = strtok(NULL, ",");
+            if (token == NULL)
+            {
+                converted.selection_type = CellSelection;
+                return converted;
+            } //[R,C]
+
+            if (token[0] == '_') R2 = row_count;
+            else R2 = atoi(token);
+
+            converted.selection_type = WindowSelection;
+
+            token = strtok(NULL, ",");
+            if (token != NULL && token[0] == '_') C2 = column_count;
+            else C2 = atoi(token);
+
+            if (R2 <= 0 || C2 <= 0)
+            {
+                fprintf(stderr, "ERROR: unable to parse command %s\n", input);
+                exit(EXIT_FAILURE);
+            }
+
+            return converted;
+        }
+
+        return converted;
     }
 
     CommandName commandName = str_to_cmd_name(name);
@@ -353,14 +510,9 @@ Command str_to_cmd(char* input)
 
         converted.variable = variable;
     }
+
     return converted;
 }
-
-//region Global variables
-char* Delims = " ";
-int HadCustomDelims = 0;
-char* Variables[10];
-//endregion
 
 int isDelim(char value)
 {
@@ -573,6 +725,7 @@ void fix_table(Row* table)
         if (len > max) max = len;
         currentRow = currentRow->next;
     }
+    column_count = max;
 
     currentRow = table;
     while (currentRow != NULL)
@@ -612,8 +765,10 @@ int main(int argc, char* argv[])
 {
     read_delims(argc, argv);
     Row* table = load_table(argc, argv);
-    CommandSequence* cmdseq = read_cmds(argc, argv);
     fix_table(table);
+    row_count = rows_count(table);
+
+    CommandSequence* cmdseq = read_cmds(argc, argv);
 
     print_table(table);
 
