@@ -13,7 +13,7 @@ Vstupem programu budou textová data tabulky, zadání operací bude prostředni
 
 ## Příkazy ##
 
-# Příkazy pro změnu výběru #
+### Příkazy pro změnu výběru ###
 
 * `[R,C]` - výběr buňky na řádku R a sloupci C.
 * `[R,_]` - výběr celého řádku R.
