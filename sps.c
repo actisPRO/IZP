@@ -235,6 +235,58 @@ Cell* get_cell(Cell* row, int num)
     return result;
 }
 
+void push_row(Row** table, Cell* first_cell)
+{
+    Row* new_head = create_table(first_cell);
+    new_head->first_cell = first_cell;
+    new_head->next = (*table);
+    (*table) = new_head;
+}
+
+void insert_row(Row* previous, Cell* first_cell)
+{
+    Row* new = create_table(first_cell);
+    new->first_cell = first_cell;
+    new->next = previous->next;
+    previous->next = new;
+}
+
+void delete_cells(Cell *cell)
+{
+    if (cell->next != NULL)
+    {
+        delete_cells(cell->next);
+    }
+    free(cell->value);
+    free(cell);
+}
+
+void delete_row_at(Row** table, int index)
+{
+    Row* temp = *table;
+    Row* previous = NULL;
+
+    if (index == 0)
+    {
+        *table = temp->next;
+        delete_cells(temp->first_cell);
+        free(temp);
+        return;
+    }
+
+    for (int i = 1; i <= index; ++i)
+    {
+        previous = temp;
+        temp = temp->next;
+        if (temp == NULL) return;
+    }
+
+    previous->next = temp->next;
+
+    delete_cells(temp->first_cell);
+    free(temp);
+}
+
 //endregion
 
 //region Utils
@@ -1008,7 +1060,43 @@ void change_selection(Row* table, Command cmd)
     }
 }
 
-void run_commands(Row* table, CommandSequence* cmdseq)
+void change_structure(Row** table, Command cmd)
+{
+    if (cmd.name == irow)
+    {
+        Cell* new = create_row("\0");
+        for (int j = 2; j <= ColumnCount; ++j)
+            add_cell(new, "\0");
+
+        int row_pos = CurrentSelection.top_left[ROW] - 1;
+        if (row_pos == 0) push_row(table, new);
+        else
+        {
+            Row* previous = get_row(*table, row_pos - 1);
+            insert_row(previous, new);
+        }
+
+        ++RowCount;
+    }
+    else if (cmd.name == arow)
+    {
+        Cell* new = create_row("\0");
+        for (int j = 2; j <= ColumnCount; ++j)
+            add_cell(new, "\0");
+
+        int row_pos = CurrentSelection.down_right[ROW] - 1;
+        insert_row(get_row(*table, row_pos), new);
+
+        ++RowCount;
+    }
+    else if (cmd.name == drow)
+    {
+        for (int row = CurrentSelection.down_right[ROW] - 1; row >= CurrentSelection.top_left[ROW] - 1; --row)
+            delete_row_at(table, row);
+    }
+}
+
+void run_commands(Row** table, CommandSequence* cmdseq)
 {
     CommandSequence* current_command = cmdseq;
     while (current_command != NULL)
@@ -1017,13 +1105,14 @@ void run_commands(Row* table, CommandSequence* cmdseq)
         switch (cmd.type)
         {
         case ChangeStructure:
+            change_structure(table, cmd);
             break;
         case ChangeContent:
             break;
         case VariableOperation:
             break;
         case SelectionOperation:
-            change_selection(table, cmd);
+            change_selection(*table, cmd);
             break;
         }
 
@@ -1044,7 +1133,7 @@ int main(int argc, char* argv[])
     CurrentSelection.down_right[COL] = ColumnCount;
 
     CommandSequence* cmdseq = read_cmds(argc, argv);
-    run_commands(table, cmdseq);
+    run_commands(&table, cmdseq);
 
     print_table(table);
 
