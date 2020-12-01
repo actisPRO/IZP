@@ -116,6 +116,9 @@ typedef struct _selection {
 //endregion
 
 //region List methods
+/*
+ * Creates a new list of commands
+ */
 CommandSequence* create_cmdseq(Command cmd)
 {
     CommandSequence* cmdseq = malloc(sizeof(CommandSequence));
@@ -127,6 +130,9 @@ CommandSequence* create_cmdseq(Command cmd)
     return cmdseq;
 }
 
+/*
+ * Recursivly frees memery, allocated for the list of commands
+ */
 void delete_cmdseq(CommandSequence* cmdseq)
 {
     if (cmdseq->next != NULL)
@@ -136,6 +142,9 @@ void delete_cmdseq(CommandSequence* cmdseq)
     free(cmdseq);
 }
 
+/*
+ * Adds a new command to the end of list.
+ */
 void add_cmdseq(CommandSequence* cmdseq, Command command)
 {
     CommandSequence* current = cmdseq;
@@ -146,6 +155,9 @@ void add_cmdseq(CommandSequence* cmdseq, Command command)
     current->next = create_cmdseq(command);
 }
 
+/*
+ * Create a new list of cells
+ */
 Cell* create_row(char *first_value)
 {
     Cell* row = malloc(sizeof(Cell));
@@ -158,6 +170,9 @@ Cell* create_row(char *first_value)
     return row;
 }
 
+/*
+ * Adds a cell to the end of a list of cells.
+ */
 void add_cell(Cell* firstCell, char* value)
 {
     Cell* current = firstCell;
@@ -168,6 +183,9 @@ void add_cell(Cell* firstCell, char* value)
     current->next = create_row(value);
 }
 
+/*
+ * Returns amount of cells in a list
+ */
 int cell_count(Cell* first_cell)
 {
     Cell* current = first_cell;
@@ -181,6 +199,9 @@ int cell_count(Cell* first_cell)
     return count;
 }
 
+/*
+ * Create a new list of rows
+ */
 Row* create_table(Cell* first_cell)
 {
     Row* table = malloc(sizeof(Row));
@@ -193,6 +214,9 @@ Row* create_table(Cell* first_cell)
     return table;
 }
 
+/*
+ * Adds a new row to a list of rows
+ */
 void add_row(Row* firstRow, Cell* firstCell)
 {
     Row * current = firstRow;
@@ -203,6 +227,9 @@ void add_row(Row* firstRow, Cell* firstCell)
     current->next = create_table(firstCell);
 }
 
+/*
+ * Return the amount of elements in a list of rows
+ */
 int rows_count(Row* firstRow)
 {
     int count = 1;
@@ -215,26 +242,35 @@ int rows_count(Row* firstRow)
     return count;
 }
 
-Row* get_row(Row* table, int num)
+/*
+ * Returns row with a specified index for a list of rows
+ */
+Row* get_row(Row* table, int index)
 {
-    if (num < 0 || num >= rows_count(table)) return NULL;
+    if (index < 0 || index >= rows_count(table)) return NULL;
     Row* result = table;
-    for (int i = 0; i < num; ++i)
+    for (int i = 0; i < index; ++i)
         result = result->next;
 
     return result;
 }
 
-Cell* get_cell(Cell* row, int num)
+/*
+ * Returns a cell with a specified index from a list of cells
+ */
+Cell* get_cell(Cell* row, int index)
 {
-    if (num < 0 || num >= cell_count(row)) return NULL;
+    if (index < 0 || index >= cell_count(row)) return NULL;
     Cell* result = row;
-    for (int i = 0; i < num; ++i)
+    for (int i = 0; i < index; ++i)
         result = result->next;
 
     return result;
 }
 
+/*
+ * Adds a new cell at the beggining of a list of cells
+ */
 void push_cell(Cell** row, char* value)
 {
     Cell* new_head = create_row(value);
