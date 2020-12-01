@@ -24,3 +24,12 @@ Vstupem programu budou textová data tabulky, zadání operací bude prostředni
 * `[max]` - obdobně jako předchozí příkaz, ale najde buňku s maximální hodnotou.
 * `[find STR]` - v již existujícím výběru buněk vybere první buňku, jejíž hodnota obsahuje podřetězec STR.
 * `[_]` - obnoví výběr z dočasné proměnné.
+
+### Příkazy pro úpravu obsahu buněk ###
+* `set STR` - nastaví hodnotu buňky na řetězec STR. Řetězec STR může být ohraničen uvozovkami a může obsahovat speciální znaky uvozené lomítkem (viz formát tabulky)
+* `clear` - obsah vybraných buněk bude odstraněn (buňky budou mít prázdný obsah)
+* `swap [R,C]` - vymění obsah vybrané buňky s buňkou na řádku R a sloupci C
+* `sum [R,C]` - do buňky na řádku R a sloupci C uloží součet hodnot vybraných buněk (odpovídající formátu %g u printf). Vybrané buňky neobsahující číslo budou ignorovány (jako by vybrány nebyly).
+* `avg [R,C]` - stejné jako sum, ale ukládá se aritmetický průměr z vybraných buněk
+* `count [R,C]` - stejné jako sum, ale ukládá se počet neprázdných buněk z vybraných buněk
+* `len [R,C]` - do buňky na řádku R a sloupci C uloží délku řetězce aktuálně vybrané buňky
