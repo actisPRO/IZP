@@ -361,6 +361,14 @@ void delete_row_at(Row** table, int index)
     free(temp);
 }
 
+void delete_rows(Row* row)
+{
+    if (row->next != NULL)
+        delete_rows(row->next);
+    delete_cells(row->first_cell);
+    free(row);
+}
+
 Cell* get_cell_from_table(Row* table, int row_pos, int col_pos)
 {
     Row* row = get_row(table, row_pos);
@@ -1401,5 +1409,9 @@ int main(int argc, char* argv[])
 
     print_table(table);
 
+    // free
+    delete_rows(table);
+    delete_cmdseq(cmdseq);
+    for (int i = 0; i < 10; ++i) free(Variables[i]);
     return 0;
 }
