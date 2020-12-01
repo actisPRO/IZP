@@ -995,6 +995,7 @@ void change_selection(Row* table, Command cmd)
 
         break;
     case FindString:
+        //todo
         break;
     case FromVariable:
         if (!vs_isset)
