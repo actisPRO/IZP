@@ -235,10 +235,23 @@ Cell* get_cell(Cell* row, int num)
     return result;
 }
 
+void push_cell(Cell** row, char* value)
+{
+    Cell* new_head = create_row(value);
+    new_head->next = *row;
+    *row = new_head;
+}
+
+void insert_cell(Cell* previous, char* value)
+{
+    Cell* new = create_row(value);
+    new->next = previous->next;
+    previous->next = new;
+}
+
 void push_row(Row** table, Cell* first_cell)
 {
     Row* new_head = create_table(first_cell);
-    new_head->first_cell = first_cell;
     new_head->next = (*table);
     (*table) = new_head;
 }
@@ -246,7 +259,6 @@ void push_row(Row** table, Cell* first_cell)
 void insert_row(Row* previous, Cell* first_cell)
 {
     Row* new = create_table(first_cell);
-    new->first_cell = first_cell;
     new->next = previous->next;
     previous->next = new;
 }
@@ -1093,6 +1105,23 @@ void change_structure(Row** table, Command cmd)
     {
         for (int row = CurrentSelection.down_right[ROW] - 1; row >= CurrentSelection.top_left[ROW] - 1; --row)
             delete_row_at(table, row);
+        RowCount -= CurrentSelection.down_right[ROW] - CurrentSelection.top_left[ROW] + 1;
+    }
+    else if (cmd.name == icol)
+    {
+        int col_pos = CurrentSelection.top_left[COL] - 1;
+        for (int row = 0; row < RowCount; ++row)
+        {
+            Cell* current = get_row(*table, row)->first_cell;
+            if (col_pos == 0) push_cell(&current, "\0");
+            else
+            {
+                Cell* previous = get_cell(current, col_pos - 1);
+                insert_cell(previous, "\0");
+            }
+        }
+
+        ++ColumnCount;
     }
 }
 
