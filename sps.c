@@ -685,21 +685,11 @@ Command str_to_cmd(char* input)
             exit(EXIT_FAILURE);
         }
 
-        if (args[0] == '\"')
-        {
-            res = sscanf(input, "%s \"%[^\"]\"", name, args); // rescan using another template (with quotes)
-            if (res != 2)
-            {
-                fprintf(stderr, "ERROR: something went wrong while parsing arguments for the command '%s'.", name);
-                exit(EXIT_FAILURE);
-            }
+        int len = strlen(input);
+        for (int i = 4; i < len; ++i)
+            converted.string_arg[i - 4] = input[i];
 
-            strcpy(converted.string_arg, args);
-        }
-        else
-        {
-            strcpy(converted.string_arg, args);
-        }
+        converted.string_arg[len - 4 + 1] = 0;
     }
 
     if (converted.command_args_type == Variable)
@@ -1210,6 +1200,23 @@ void change_structure(Row** table, Command cmd)
     }
 }
 
+void change_content(Row* table, Command cmd)
+{
+    for (int row = CurrentSelection.top_left[ROW] - 1; row < CurrentSelection.down_right[ROW]; ++row)
+    {
+        Cell* current_row = get_row(table, row)->first_cell;
+        for (int column = CurrentSelection.top_left[COL] - 1; column < CurrentSelection.down_right[COL]; ++column)
+        {
+            Cell* current_cell = get_cell(current_row, column);
+            if (cmd.name == set)
+            {
+                current_cell->value = malloc(strlen(cmd.string_arg) + 1);
+                strcpy(current_cell->value, cmd.string_arg);
+            }
+        }
+    }
+}
+
 void run_commands(Row** table, CommandSequence* cmdseq)
 {
     CommandSequence* current_command = cmdseq;
@@ -1222,6 +1229,7 @@ void run_commands(Row** table, CommandSequence* cmdseq)
             change_structure(table, cmd);
             break;
         case ChangeContent:
+            change_content(*table, cmd);
             break;
         case VariableOperation:
             break;
