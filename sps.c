@@ -960,6 +960,39 @@ void change_selection(Row* table, Command cmd)
 
         break;
     case Max:
+        row_count = CurrentSelection.top_left[ROW] - CurrentSelection.down_right[ROW];
+        col_count = CurrentSelection.top_left[COL] - CurrentSelection.down_right[COL];
+        for (int row_num = CurrentSelection.top_left[ROW] - 1; row_num < CurrentSelection.down_right[ROW]; ++row_num)
+        {
+            row = get_row(table, row_num);
+            for (int col_num = CurrentSelection.top_left[COL] - 1; col_num < CurrentSelection.down_right[COL]; ++col_num)
+            {
+                cell = get_cell(row->first_cell, col_num);
+                value = strtoll(cell->value, &endptr, 10);
+
+                if (*endptr == '\0' && cell->value[0] != '\0')
+                {
+                    found = 1;
+                    if (value > max)
+                    {
+                        min = value;
+                        row_pos = row_num; col_pos = col_num;
+                    }
+                }
+            }
+        }
+
+        if (found == 0)
+        {
+            fprintf(stderr, "ERROR: unable to run command [min] - no numbers were found in the selection!\n");
+            exit(EXIT_FAILURE);
+        }
+
+        CurrentSelection.top_left[ROW] = row_pos + 1;
+        CurrentSelection.top_left[COL] = col_pos + 1;
+        CurrentSelection.down_right[ROW] = row_pos + 1;
+        CurrentSelection.down_right[COL] = col_pos + 1;
+
         break;
     case FindString:
         break;
