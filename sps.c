@@ -1231,6 +1231,36 @@ void change_content(Row* table, Command cmd)
         strcpy(second->value, buffer);
         free(buffer);
     }
+    else if (cmd.name == sum || cmd.name == avg)
+    {
+        double summ = 0;
+        int count = 0;
+        for (int row = CurrentSelection.top_left[ROW] - 1; row < CurrentSelection.down_right[ROW]; ++row)
+        {
+            Cell* current_row = get_row(table, row)->first_cell;
+            for (int column = CurrentSelection.top_left[COL] - 1; column < CurrentSelection.down_right[COL]; ++column)
+            {
+                Cell* current_cell = get_cell(current_row, column);
+                char *endptr;
+                double value = strtod(current_cell->value, &endptr);
+
+                if (*endptr == '\0' && current_cell->value[0] != '\0')
+                {
+                    summ += value;
+                    ++count;
+                }
+            }
+        }
+
+        char result[32];
+        if (cmd.name == sum) sprintf(result, "%g", summ);
+        else sprintf(result, "%g", summ / count);
+
+        Cell* selected = get_cell_from_table(table, cmd.int_args[0] - 1, cmd.int_args[1] - 1);
+        free(selected->value);
+        selected->value = malloc(strlen(result) + 1);
+        strcpy(selected->value, result);
+    }
     else
     {
         for (int row = CurrentSelection.top_left[ROW] - 1; row < CurrentSelection.down_right[ROW]; ++row)
