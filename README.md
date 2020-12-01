@@ -33,3 +33,11 @@ Vstupem programu budou textová data tabulky, zadání operací bude prostředni
 * `avg [R,C]` - stejné jako sum, ale ukládá se aritmetický průměr z vybraných buněk
 * `count [R,C]` - stejné jako sum, ale ukládá se počet neprázdných buněk z vybraných buněk
 * `len [R,C]` - do buňky na řádku R a sloupci C uloží délku řetězce aktuálně vybrané buňky
+
+### Příkazy pro práci s dočasnými proměnnými ###
+Tabulkový procesor umožnujě pracovat s 10 tzv. dočasnými proměnnými identifikovanými jako _0 až _9. Dočasné proměnné mají po spuštění programu prázdnou hodnotu. Jedna dočasná proměnná identikovaná jako podtržítko _ je určena pro výběr buněk (tj. pamatuje si, které buňky byly označeny).
+
+* `def _X` - hodnota aktuální buňky bude nastavena do dočasné proměnné X (kde X může být hodnota 0 až 9)
+* `use _X` - aktuální buňka bude nastavena na hodnotu z dočasné proměnné X (kde X identifikuje dočasnou proměnnou _0 až _9)
+* `inc _X` - numerická hodnota v dočasné proměnné bude zvětšena o 1. Pokud dočasná proměnná neobsahuje číslo, bude výsledná hodnota proměnné nastavená na 1.
+* `[set]` - nastaví aktuální výběr buněk do dočasné proměnné _ (ukládá se pouze, které buňky jsou vybrány, nikoliv jejich obsah)

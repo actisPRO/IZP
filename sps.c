@@ -1343,14 +1343,14 @@ void change_variables(Row* table, Command cmd)
         if (cmd.name == def)
         {
             free(Variables[cmd.variable]);
-            Variables[cmd.name] = malloc(strlen(selected->value) + 1);
-            strcpy(Variables[cmd.name], selected->value);
+            Variables[cmd.variable] = malloc(strlen(selected->value) + 1);
+            strcpy(Variables[cmd.variable], selected->value);
         }
         else if (cmd.name == use)
         {
             free(selected->value);
-            selected->value = malloc(strlen(Variables[cmd.name] + 1));
-            strcpy(selected->value, Variables[cmd.name]);
+            selected->value = malloc(strlen(Variables[cmd.variable] + 1));
+            strcpy(selected->value, Variables[cmd.variable]);
         }
     }
 }
