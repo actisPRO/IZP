@@ -1305,6 +1305,41 @@ void change_content(Row* table, Command cmd)
     }
 }
 
+void change_variables(Row* table, Command cmd)
+{
+    if (cmd.name == var_set)
+    {
+        VariableSelection = CurrentSelection;
+        vs_isset = 1;
+    }
+    else if (cmd.name == inc)
+    {
+        char *endptr;
+        double value = strtod(Variables[cmd.variable], &endptr);
+        if (*endptr == '\0' && *Variables[cmd.variable] != '\0')
+        {
+            char buff[32] = {0};
+            sprintf(buff, "%g", value);
+            Variables[cmd.variable] = malloc(strlen(buff) + 1);
+            strcpy(Variables[cmd.variable], buff);
+        }
+        else
+        {
+            Variables[cmd.variable] = malloc(2);
+            Variables[cmd.variable] = "1\0";
+        }
+    }
+    else
+    {
+        if (CurrentSelection.top_left[ROW] != CurrentSelection.down_right[ROW]
+                || CurrentSelection.top_left[COL] != CurrentSelection.down_right[COL])
+        {
+            fprintf(stderr, "ERROR: can't execute variable command: more then one cell was selected.\n");
+            exit(EXIT_FAILURE);
+        }
+    }
+}
+
 void run_commands(Row** table, CommandSequence* cmdseq)
 {
     CommandSequence* current_command = cmdseq;
@@ -1320,6 +1355,7 @@ void run_commands(Row** table, CommandSequence* cmdseq)
             change_content(*table, cmd);
             break;
         case VariableOperation:
+            change_variables(*table, cmd);
             break;
         case SelectionOperation:
             change_selection(*table, cmd);
@@ -1341,6 +1377,9 @@ int main(int argc, char* argv[])
     CurrentSelection.top_left[COL] = 1;
     CurrentSelection.down_right[ROW] = RowCount;
     CurrentSelection.down_right[COL] = ColumnCount;
+
+    for (int i = 0; i < 10; ++i)
+        Variables[i] = calloc(1, 1);
 
     CommandSequence* cmdseq = read_cmds(argc, argv);
     run_commands(&table, cmdseq);
