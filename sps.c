@@ -13,11 +13,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <limits.h>
 //endregion
 
 //region Defines
 #define ROW 0
-#define COL 0
+#define COL 1
 //endregion
 
 //region Enums
@@ -202,7 +203,7 @@ void add_row(Row* firstRow, Cell* firstCell)
     current->next = create_table(firstCell);
 }
 
-unsigned int rows_count(Row* firstRow)
+int rows_count(Row* firstRow)
 {
     int count = 1;
     while (firstRow->next != NULL)
@@ -212,6 +213,26 @@ unsigned int rows_count(Row* firstRow)
     }
 
     return count;
+}
+
+Row* get_row(Row* table, int num)
+{
+    if (num < 0 || num >= rows_count(table)) return NULL;
+    Row* result = table;
+    for (int i = 0; i < num; ++i)
+        result = result->next;
+
+    return result;
+}
+
+Cell* get_cell(Cell* row, int num)
+{
+    if (num < 0 || num >= cell_count(row)) return NULL;
+    Cell* result = row;
+    for (int i = 0; i < num; ++i)
+        result = result->next;
+
+    return result;
 }
 
 //endregion
@@ -850,6 +871,21 @@ void print_table(Row* table)
 
 void change_selection(Row* table, Command cmd)
 {
+    int row_count = 0, col_count = 0;
+    Row* row = NULL;
+    Cell* cell = NULL;
+
+    char* endptr;
+    errno = 0;
+    int found = 0;
+
+    long long value = 0;
+    long long max = LLONG_MIN;
+    long long min = LLONG_MAX;
+
+    int row_pos = 0;
+    int col_pos = 0;
+
     switch (cmd.selection_type)
     {
     case CellSelection:
@@ -889,6 +925,39 @@ void change_selection(Row* table, Command cmd)
         CurrentSelection.down_right[COL] = ColumnCount;
         break;
     case Min:
+        row_count = CurrentSelection.top_left[ROW] - CurrentSelection.down_right[ROW];
+        col_count = CurrentSelection.top_left[COL] - CurrentSelection.down_right[COL];
+        for (int row_num = CurrentSelection.top_left[ROW] - 1; row_num < CurrentSelection.down_right[ROW]; ++row_num)
+        {
+            row = get_row(table, row_num);
+            for (int col_num = CurrentSelection.top_left[COL] - 1; col_num < CurrentSelection.down_right[COL]; ++col_num)
+            {
+                cell = get_cell(row->first_cell, col_num);
+                value = strtoll(cell->value, &endptr, 10);
+
+                if (*endptr == '\0' && cell->value[0] != '\0')
+                {
+                    found = 1;
+                    if (value < min)
+                    {
+                        min = value;
+                        row_pos = row_num; col_pos = col_num;
+                    }
+                }
+            }
+        }
+
+        if (found == 0)
+        {
+            fprintf(stderr, "ERROR: unable to run command [min] - no numbers were found in the selection!\n");
+            exit(EXIT_FAILURE);
+        }
+
+        CurrentSelection.top_left[ROW] = row_pos + 1;
+        CurrentSelection.top_left[COL] = col_pos + 1;
+        CurrentSelection.down_right[ROW] = row_pos + 1;
+        CurrentSelection.down_right[COL] = col_pos + 1;
+
         break;
     case Max:
         break;
