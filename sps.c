@@ -1267,6 +1267,25 @@ void change_content(Row* table, Command cmd)
         selected->value = malloc(strlen(result) + 1);
         strcpy(selected->value, result);
     }
+    else if (cmd.name == len)
+    {
+        if (CurrentSelection.top_left[ROW] != CurrentSelection.down_right[ROW]
+                || CurrentSelection.top_left[COL] != CurrentSelection.down_right[COL])
+        {
+            fprintf(stderr, "ERROR: can't execute len: more then one cell was selected.\n");
+            exit(EXIT_FAILURE);
+        }
+
+        Cell* put_to = get_cell_from_table(table, cmd.int_args[0] - 1, cmd.int_args[1] - 1);
+        Cell* selected = get_cell_from_table(table, CurrentSelection.top_left[ROW] - 1, CurrentSelection.top_left[COL] - 1);
+
+        int len = strlen(selected->value);
+        char buff[32];
+        sprintf(buff, "%d", len);
+        free(put_to->value);
+        put_to->value = malloc(strlen(buff) + 1);
+        strcpy(put_to->value, buff);
+    }
     else
     {
         for (int row = CurrentSelection.top_left[ROW] - 1; row < CurrentSelection.down_right[ROW]; ++row)
