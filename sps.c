@@ -331,7 +331,7 @@ void delete_cells(Cell *cell)
     {
         delete_cells(cell->next);
     }
-    free(cell->value);
+    //free(cell->value);
     free(cell);
 }
 
@@ -779,7 +779,7 @@ Row* load_table(int argc, char* argv[])
         exit(EXIT_FAILURE);
     }
 
-    char nextChar = (char)fgetc(fptr);
+    char nextChar = (char)fgetc(fptr), prevChar = 0;
     int cellLength = 1;
     char *cellStr = malloc(1);
     cellStr[0] = '\0';
@@ -809,7 +809,7 @@ Row* load_table(int argc, char* argv[])
             cellStr = malloc(1);
             cellStr[0] = '\0';
         }
-        else if (nextChar == '\n' || nextChar == EOF)
+        else if (nextChar == '\n' || (nextChar == EOF && prevChar != '\n' && prevChar != EOF))
         {
             add_cell(row, cellStr);
 
@@ -822,8 +822,6 @@ Row* load_table(int argc, char* argv[])
                 add_row(table, row);
             }
 
-            if (nextChar == EOF) break;
-
             ++row_pos;
 
             row = malloc(sizeof(Cell));
@@ -835,6 +833,7 @@ Row* load_table(int argc, char* argv[])
 
             inQuotes = 0;
         }
+        else if (nextChar == EOF && (prevChar == '\n' || prevChar == EOF)) break;
         else
         {
             if (nextChar == '"' && !nextCharEscaped) inQuotes = !inQuotes;
@@ -853,6 +852,7 @@ Row* load_table(int argc, char* argv[])
             nextCharEscaped = 0;
         }
 
+        prevChar = nextChar;
         nextChar = (char)fgetc(fptr);
     }
 
@@ -1391,6 +1391,12 @@ void run_commands(Row** table, CommandSequence* cmdseq)
 
 int main(int argc, char* argv[])
 {
+    if (argc < 3)
+    {
+        fprintf(stderr, "ERROR: not enough arguments.\n");
+        exit(EXIT_FAILURE);
+    }
+
     read_delims(argc, argv);
     Row* table = load_table(argc, argv);
     fix_table(table);
