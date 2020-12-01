@@ -1123,6 +1123,18 @@ void change_structure(Row** table, Command cmd)
 
         ++ColumnCount;
     }
+    else if (cmd.name == acol)
+    {
+        int col_pos = CurrentSelection.top_left[COL] - 1;
+        for (int row = 0; row < RowCount; ++row)
+        {
+            Cell* current_row = get_row(*table, row)->first_cell;
+            Cell* current_cell = get_cell(current_row, col_pos);
+            insert_cell(current_cell, "\0");
+        }
+
+        ++ColumnCount;
+    }
 }
 
 void run_commands(Row** table, CommandSequence* cmdseq)
