@@ -361,6 +361,12 @@ void delete_row_at(Row** table, int index)
     free(temp);
 }
 
+Cell* get_cell_from_table(Row* table, int row_pos, int col_pos)
+{
+    Row* row = get_row(table, row_pos);
+    return get_cell(row->first_cell, col_pos);
+}
+
 //endregion
 
 //region Utils
@@ -1202,16 +1208,49 @@ void change_structure(Row** table, Command cmd)
 
 void change_content(Row* table, Command cmd)
 {
-    for (int row = CurrentSelection.top_left[ROW] - 1; row < CurrentSelection.down_right[ROW]; ++row)
+    if (cmd.name == swap)
     {
-        Cell* current_row = get_row(table, row)->first_cell;
-        for (int column = CurrentSelection.top_left[COL] - 1; column < CurrentSelection.down_right[COL]; ++column)
+        if (CurrentSelection.top_left[ROW] != CurrentSelection.down_right[ROW]
+            || CurrentSelection.top_left[COL] != CurrentSelection.down_right[COL])
         {
-            Cell* current_cell = get_cell(current_row, column);
-            if (cmd.name == set)
+            fprintf(stderr, "ERROR: can't execute swap: more then one cell was selected.\n");
+            exit(EXIT_FAILURE);
+        }
+
+        Cell* first = get_cell_from_table(table, cmd.int_args[0] - 1, cmd.int_args[1] - 1);
+        Cell* second = get_cell_from_table(table, CurrentSelection.top_left[ROW] - 1, CurrentSelection.top_left[COL] - 1);
+
+        char* buffer = malloc(strlen(first->value) + 1);
+        strcpy(buffer, first->value);
+        free(first->value);
+        first->value = malloc(strlen(second->value) + 1);
+        strcpy(first->value, second->value);
+
+        free(second->value);
+        second->value = malloc(strlen(buffer) + 1);
+        strcpy(second->value, buffer);
+        free(buffer);
+    }
+    else
+    {
+        for (int row = CurrentSelection.top_left[ROW] - 1; row < CurrentSelection.down_right[ROW]; ++row)
+        {
+            Cell* current_row = get_row(table, row)->first_cell;
+            for (int column = CurrentSelection.top_left[COL] - 1; column < CurrentSelection.down_right[COL]; ++column)
             {
-                current_cell->value = malloc(strlen(cmd.string_arg) + 1);
-                strcpy(current_cell->value, cmd.string_arg);
+                Cell* current_cell = get_cell(current_row, column);
+                if (cmd.name == set)
+                {
+                    free(current_cell->value);
+                    current_cell->value = malloc(strlen(cmd.string_arg) + 1);
+                    strcpy(current_cell->value, cmd.string_arg);
+                }
+                else if (cmd.name == clear)
+                {
+                    free(current_cell->value);
+                    current_cell->value = malloc(1);
+                    current_cell->value = "\0";
+                }
             }
         }
     }
