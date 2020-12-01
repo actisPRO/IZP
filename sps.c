@@ -1337,6 +1337,21 @@ void change_variables(Row* table, Command cmd)
             fprintf(stderr, "ERROR: can't execute variable command: more then one cell was selected.\n");
             exit(EXIT_FAILURE);
         }
+
+        Cell* selected = get_cell_from_table(table, CurrentSelection.top_left[ROW] - 1, CurrentSelection.top_left[COL] - 1);
+
+        if (cmd.name == def)
+        {
+            free(Variables[cmd.variable]);
+            Variables[cmd.name] = malloc(strlen(selected->value) + 1);
+            strcpy(Variables[cmd.name], selected->value);
+        }
+        else if (cmd.name == use)
+        {
+            free(selected->value);
+            selected->value = malloc(strlen(Variables[cmd.name] + 1));
+            strcpy(selected->value, Variables[cmd.name]);
+        }
     }
 }
 
