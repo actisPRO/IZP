@@ -263,6 +263,32 @@ void insert_row(Row* previous, Cell* first_cell)
     previous->next = new;
 }
 
+void delete_cell_at(Cell** row, int index)
+{
+    Cell* temp = *row;
+    Cell* previous = NULL;
+
+    if (index == 0)
+    {
+        *row = temp->next;
+        free(temp->value);
+        free(temp);
+        return;
+    }
+
+    for (int i = 1; i <= index; ++i)
+    {
+        previous = temp;
+        temp = temp->next;
+        if (temp == NULL) return;
+    }
+
+    previous->next = temp->next;
+
+    free(temp->value);
+    free(temp);
+}
+
 void delete_cells(Cell *cell)
 {
     if (cell->next != NULL)
@@ -1134,6 +1160,17 @@ void change_structure(Row** table, Command cmd)
         }
 
         ++ColumnCount;
+    }
+    else if (cmd.name == dcol)
+    {
+        for (int row = 0; row < RowCount; ++row)
+        {
+            Cell** current_row = &(get_row(*table, row)->first_cell);
+            for (int col = CurrentSelection.down_right[COL] - 1; col >= CurrentSelection.top_left[COL] - 1; --col)
+                delete_cell_at(current_row, col);
+        }
+
+        ColumnCount -= CurrentSelection.down_right[COL] - CurrentSelection.top_left[COL] + 1;
     }
 }
 
