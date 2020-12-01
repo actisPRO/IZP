@@ -1012,14 +1012,14 @@ void change_selection(Row* table, Command cmd)
     {
     case CellSelection:
         if (ColumnCount < cmd.C1) add_columns_end(table, cmd.C1 - ColumnCount);
-        if (RowCount < cmd.R1) add_rows_end(table, cmd.R1 - ColumnCount);
+        if (RowCount < cmd.R1) add_rows_end(table, cmd.R1 - RowCount);
         CurrentSelection.top_left[ROW] = cmd.R1;
         CurrentSelection.top_left[COL] = cmd.C1;
         CurrentSelection.down_right[ROW] = cmd.R1;
         CurrentSelection.down_right[COL] = cmd.C1;
         break;
     case RowSelection:
-        if (RowCount < cmd.R1) add_rows_end(table, cmd.R1 - ColumnCount);
+        if (RowCount < cmd.R1) add_rows_end(table, cmd.R1 - RowCount);
         CurrentSelection.top_left[ROW] = cmd.R1;
         CurrentSelection.top_left[COL] = 1;
         CurrentSelection.down_right[ROW] = cmd.R1;
@@ -1042,7 +1042,7 @@ void change_selection(Row* table, Command cmd)
         break;
     case Full:
         CurrentSelection.top_left[ROW] = 1;
-        CurrentSelection.down_right[COL] = 1;
+        CurrentSelection.top_left[COL] = 1;
         CurrentSelection.down_right[ROW] = RowCount;
         CurrentSelection.down_right[COL] = ColumnCount;
         break;
@@ -1231,10 +1231,11 @@ void change_content(Row* table, Command cmd)
         strcpy(second->value, buffer);
         free(buffer);
     }
-    else if (cmd.name == sum || cmd.name == avg)
+    else if (cmd.name == sum || cmd.name == avg || cmd.name == count)
     {
         double summ = 0;
         int count = 0;
+        int count_non_empty = 0;
         for (int row = CurrentSelection.top_left[ROW] - 1; row < CurrentSelection.down_right[ROW]; ++row)
         {
             Cell* current_row = get_row(table, row)->first_cell;
@@ -1244,17 +1245,22 @@ void change_content(Row* table, Command cmd)
                 char *endptr;
                 double value = strtod(current_cell->value, &endptr);
 
-                if (*endptr == '\0' && current_cell->value[0] != '\0')
+                if (current_cell->value[0] != '\0')
                 {
-                    summ += value;
-                    ++count;
+                    ++count_non_empty;
+                    if (*endptr == '\0')
+                    {
+                        summ += value;
+                        ++count;
+                    }
                 }
             }
         }
 
         char result[32];
         if (cmd.name == sum) sprintf(result, "%g", summ);
-        else sprintf(result, "%g", summ / count);
+        else if (cmd.name == count) sprintf(result, "%g", summ / count);
+        else sprintf(result, "%d", count_non_empty);
 
         Cell* selected = get_cell_from_table(table, cmd.int_args[0] - 1, cmd.int_args[1] - 1);
         free(selected->value);
