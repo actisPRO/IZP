@@ -993,12 +993,10 @@ void print_table(Row* table)
 
 void change_selection(Row* table, Command cmd)
 {
-    int row_count = 0, col_count = 0;
     Row* row = NULL;
     Cell* cell = NULL;
 
     char* endptr;
-    errno = 0;
     int found = 0;
 
     long long value = 0;
@@ -1047,8 +1045,6 @@ void change_selection(Row* table, Command cmd)
         CurrentSelection.down_right[COL] = ColumnCount;
         break;
     case Min:
-        row_count = CurrentSelection.top_left[ROW] - CurrentSelection.down_right[ROW];
-        col_count = CurrentSelection.top_left[COL] - CurrentSelection.down_right[COL];
         for (int row_num = CurrentSelection.top_left[ROW] - 1; row_num < CurrentSelection.down_right[ROW]; ++row_num)
         {
             row = get_row(table, row_num);
@@ -1082,8 +1078,6 @@ void change_selection(Row* table, Command cmd)
 
         break;
     case Max:
-        row_count = CurrentSelection.top_left[ROW] - CurrentSelection.down_right[ROW];
-        col_count = CurrentSelection.top_left[COL] - CurrentSelection.down_right[COL];
         for (int row_num = CurrentSelection.top_left[ROW] - 1; row_num < CurrentSelection.down_right[ROW]; ++row_num)
         {
             row = get_row(table, row_num);
@@ -1234,7 +1228,7 @@ void change_content(Row* table, Command cmd)
     else if (cmd.name == sum || cmd.name == avg || cmd.name == count)
     {
         double summ = 0;
-        int count = 0;
+        int counter = 0;
         int count_non_empty = 0;
         for (int row = CurrentSelection.top_left[ROW] - 1; row < CurrentSelection.down_right[ROW]; ++row)
         {
@@ -1251,7 +1245,7 @@ void change_content(Row* table, Command cmd)
                     if (*endptr == '\0')
                     {
                         summ += value;
-                        ++count;
+                        ++counter;
                     }
                 }
             }
@@ -1259,7 +1253,7 @@ void change_content(Row* table, Command cmd)
 
         char result[32];
         if (cmd.name == sum) sprintf(result, "%g", summ);
-        else if (cmd.name == count) sprintf(result, "%g", summ / count);
+        else if (cmd.name == count) sprintf(result, "%g", summ / counter);
         else sprintf(result, "%d", count_non_empty);
 
         Cell* selected = get_cell_from_table(table, cmd.int_args[0] - 1, cmd.int_args[1] - 1);
