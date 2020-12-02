@@ -307,7 +307,7 @@ void delete_cell_at(Cell** row, int index)
     if (index == 0)
     {
         *row = temp->next;
-        free(temp->value);
+        //free(temp->value);
         free(temp);
         return;
     }
@@ -321,7 +321,7 @@ void delete_cell_at(Cell** row, int index)
 
     previous->next = temp->next;
 
-    free(temp->value);
+    //free(temp->value);
     free(temp);
 }
 
@@ -407,6 +407,22 @@ void split_to_array(char* input, char output[4][32], char delim, int output_size
             charNum = 0;
         }
     }
+}
+
+int streq(char* str1, char* str2)
+{
+    if (strlen(str1) != strlen(str2))
+    {
+        return 0;
+    }
+
+    for (unsigned int i = 0; i < strlen(str1); ++i)
+    {
+        if (str1[i] != str2[i])
+            return 0;
+    }
+
+    return 1;
 }
 //endregion
 
@@ -533,7 +549,7 @@ Command str_to_cmd(char* input)
         {
             converted.selection_type = Min;
         }
-        else if (strcmp(input, "[max]") == 0)
+        else if (streq(input, "[max]"))
         {
             converted.selection_type = Max;
         }
@@ -701,9 +717,10 @@ Command str_to_cmd(char* input)
 
         int len = strlen(input);
         for (int i = 4; i < len; ++i)
+        {
             converted.string_arg[i - 4] = input[i];
-
-        converted.string_arg[len - 4 + 1] = 0;
+            converted.string_arg[i - 3] = 0;
+        }
     }
 
     if (converted.command_args_type == Variable)
@@ -888,35 +905,38 @@ CommandSequence* read_cmds(int argc, char* argv[])
         strncat(commandStr, " ", 1);
     }
 
-    // checks if there is only one command (w/o quotes)
-    if (argv[cmdArg][0] != '\'')
+    int pos = strlen(commandStr) - 1;
+    char last = commandStr[pos];
+    while (last == ' ' && pos > 0)
     {
-        Command cmd = str_to_cmd(commandStr);
-        CommandSequence* result = create_cmdseq(cmd);
-        return result;
+        commandStr[pos] = '\0';
+        --pos;
+        last = commandStr[pos];
     }
-    else
+    //trimming spaces from the end
+
+    if (argv[cmdArg][0] == '\'')
     {
         //stripping the first and the last character
         memmove(commandStr, commandStr + 1, commandStrLength - 2);
         commandStr[commandStrLength - 3] = 0;
-
-        //now tokenize and parse
-        char* token;
-        token = strtok(commandStr, ";");
-        Command nextCmd = str_to_cmd(token);
-        CommandSequence* result = create_cmdseq(nextCmd);
-
-        token = strtok(NULL, ";");
-        while (token != NULL)
-        {
-            nextCmd = str_to_cmd(token);
-            add_cmdseq(result, nextCmd);
-            token = strtok(NULL, ";");
-        }
-
-        return result;
     }
+
+    //now tokenize and parse
+    char* token;
+    token = strtok(commandStr, ";");
+    Command nextCmd = str_to_cmd(token);
+    CommandSequence* result = create_cmdseq(nextCmd);
+
+    token = strtok(NULL, ";");
+    while (token != NULL)
+    {
+        nextCmd = str_to_cmd(token);
+        add_cmdseq(result, nextCmd);
+        token = strtok(NULL, ";");
+    }
+
+    return result;
 }
 
 //region Table operations
@@ -1108,7 +1128,7 @@ void change_selection(Row* table, Command cmd)
 
         if (found == 0)
         {
-            fprintf(stderr, "ERROR: unable to run command [min] - no numbers were found in the selection!\n");
+            fprintf(stderr, "ERROR: unable to run command [max] - no numbers were found in the selection!\n");
             exit(EXIT_FAILURE);
         }
 
@@ -1224,11 +1244,11 @@ void change_content(Row* table, Command cmd)
 
         char* buffer = malloc(strlen(first->value) + 1);
         strcpy(buffer, first->value);
-        free(first->value);
+        //first->value);
         first->value = malloc(strlen(second->value) + 1);
         strcpy(first->value, second->value);
 
-        free(second->value);
+        //free(second->value);
         second->value = malloc(strlen(buffer) + 1);
         strcpy(second->value, buffer);
         free(buffer);
@@ -1265,7 +1285,7 @@ void change_content(Row* table, Command cmd)
         else sprintf(result, "%d", count_non_empty);
 
         Cell* selected = get_cell_from_table(table, cmd.int_args[0] - 1, cmd.int_args[1] - 1);
-        free(selected->value);
+        //free(selected->value);
         selected->value = malloc(strlen(result) + 1);
         strcpy(selected->value, result);
     }
@@ -1284,7 +1304,7 @@ void change_content(Row* table, Command cmd)
         int len = strlen(selected->value);
         char buff[32];
         sprintf(buff, "%d", len);
-        free(put_to->value);
+        //free(put_to->value);
         put_to->value = malloc(strlen(buff) + 1);
         strcpy(put_to->value, buff);
     }
@@ -1298,13 +1318,13 @@ void change_content(Row* table, Command cmd)
                 Cell* current_cell = get_cell(current_row, column);
                 if (cmd.name == set)
                 {
-                    free(current_cell->value);
+                    //free(current_cell->value);
                     current_cell->value = malloc(strlen(cmd.string_arg) + 1);
                     strcpy(current_cell->value, cmd.string_arg);
                 }
                 else if (cmd.name == clear)
                 {
-                    free(current_cell->value);
+                    //free(current_cell->value);
                     current_cell->value = malloc(1);
                     current_cell->value = "\0";
                 }
@@ -1327,7 +1347,7 @@ void change_variables(Row* table, Command cmd)
         if (*endptr == '\0' && *Variables[cmd.variable] != '\0')
         {
             char buff[32] = {0};
-            sprintf(buff, "%g", value);
+            sprintf(buff, "%g", value + 1);
             Variables[cmd.variable] = malloc(strlen(buff) + 1);
             strcpy(Variables[cmd.variable], buff);
         }
@@ -1356,7 +1376,7 @@ void change_variables(Row* table, Command cmd)
         }
         else if (cmd.name == use)
         {
-            free(selected->value);
+            //free(selected->value);
             selected->value = malloc(strlen(Variables[cmd.variable] + 1));
             strcpy(selected->value, Variables[cmd.variable]);
         }
