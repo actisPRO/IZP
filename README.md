@@ -25,6 +25,14 @@ Vstupem programu budou textová data tabulky, zadání operací bude prostředni
 * `[find STR]` - v již existujícím výběru buněk vybere první buňku, jejíž hodnota obsahuje podřetězec STR.
 * `[_]` - obnoví výběr z dočasné proměnné.
 
+### Příkazy pro úpravu struktury tabulky ###
+* `irow` - vloží jeden prázdný řádek nad vybrané buňky.
+* `arow` - přidá jeden prázdný řádek pod vybrané buňky.
+* `drow` - odstraní vybrané řádky.
+* `icol` - vloží jeden prázdný sloupec nalevo od vybraných buněk.
+* `acol` - přidá jeden prázdný sloupec napravo od vybraných buněk.
+* `dcol` - odstraní vybrané sloupce.
+
 ### Příkazy pro úpravu obsahu buněk ###
 * `set STR` - nastaví hodnotu buňky na řetězec STR. Řetězec STR může být ohraničen uvozovkami a může obsahovat speciální znaky uvozené lomítkem (viz formát tabulky)
 * `clear` - obsah vybraných buněk bude odstraněn (buňky budou mít prázdný obsah)
@@ -41,3 +49,9 @@ Tabulkový procesor umožnujě pracovat s 10 tzv. dočasnými proměnnými ident
 * `use _X` - aktuální buňka bude nastavena na hodnotu z dočasné proměnné X (kde X identifikuje dočasnou proměnnou _0 až _9)
 * `inc _X` - numerická hodnota v dočasné proměnné bude zvětšena o 1. Pokud dočasná proměnná neobsahuje číslo, bude výsledná hodnota proměnné nastavená na 1.
 * `[set]` - nastaví aktuální výběr buněk do dočasné proměnné _ (ukládá se pouze, které buňky jsou vybrány, nikoliv jejich obsah)
+
+### Příkazy pro řízení sekvence příkazů ###
+* `goto +N` - přeskočí N následujících příkazů v sekvenci příkazů (pozn. goto +1 je příkaz bez efektu)
+* `goto -N` - vrátí se v sekvenci příkazů o N příkazů zpět (pozn. goto -0 je zacyklení programu bez efektu).
+* `iszero _X +-N` - přeskočí (v případě +N) nebo se vrátí (v případě -N) o N příkazů v sekvenci, ovšem pouze v případě, že hodnota dočasné proměnné _X (0 <= X <= 9) je rovna 0.
+* `sub _X _Y` - od hodnoty v dočasné proměnné _X odečte hodnotu proměnné _Y. Výsledek uloží do proměnné _X.
