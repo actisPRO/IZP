@@ -25,6 +25,9 @@
 #define ERR_SELECTION_VAR_EMPTY 6
 #define ERR_CANT_DEF 7
 #define ERR_CANT_USE 8
+#define ERR_NOT_NUMBER 9
+#define ERR_SUB_NOT_SET 10
+#define ERR_INFINITE_CYCLE 11
 //endregion
 
 #define ROW 0
@@ -36,7 +39,8 @@ typedef enum
     ChangeStructure,
     ChangeContent,
     VariableOperation,
-    SelectionOperation
+    SelectionOperation,
+    CommandManagement
 } e_command_type;
 
 typedef enum
@@ -58,7 +62,10 @@ typedef enum
     use,
     inc,
     var_set, // [set]
-    sel // for all selection commands
+    sel, // for all selection commands
+    cmd_goto,
+    iszero,
+    sub
 } e_command_name;
 
 typedef enum
@@ -66,7 +73,10 @@ typedef enum
     None,
     String,
     TwoInt,
-    Variable
+    Variable,
+    Step,
+    VariableAndStep,
+    TwoVariables
 } e_args_type;
 
 typedef enum {
@@ -111,6 +121,8 @@ typedef struct {
     e_selection_type selection_type;
 
     int var_id;
+    int var2_id;
+    int step;
     int r1, c1, r2, c2;
     char str[1000];
 } t_command;
@@ -169,7 +181,7 @@ t_row* row_add(t_row *first, t_cell *first_cell);
 void row_push(t_row **first, t_cell *value);
 // Inserts a new element after the specified one
 void row_insert(t_row *previous, t_cell *value);
-// Returns a pointer to an element with a specified index
+// Returns a pointer to an element with the specified index
 t_row* row_get(t_row *first, int index);
 // Returns an amount of elements in the list
 int row_count(t_row *first);
@@ -182,6 +194,8 @@ void row_delete(t_row *first);
 t_cmdseq* cmdseq_create(t_command cmd);
 // Adds a new element to the end of the list and returns the pointer to it
 t_cmdseq* cmdseq_add(t_cmdseq *first, t_command cmd);
+// Returns a pointer to an element with the specified index
+t_cmdseq *cmdseq_get(t_cmdseq *first, int index);
 // Removes all elements after the specified and including it.
 void cmdseq_delete(t_cmdseq *first);
 
@@ -210,6 +224,7 @@ void change_selection(t_command cmd);
 void change_structure(t_command cmd);
 void change_content(t_command cmd);
 void exec_variable_cmd(t_command cmd);
+void manage_sequence(t_command cmd, int *current_command);
 //endregion
 
 void read_delims(int argc, char *argv[]);
@@ -477,6 +492,7 @@ void write_table(int argc, char *argv[])
 void run_commands()
 {
     t_cmdseq *next = g_cmds;
+    int current_command = 0;
     while (next != NULL)
     {
         t_command cmd = next->cmd;
@@ -494,9 +510,13 @@ void run_commands()
         case SelectionOperation:
             change_selection(cmd);
             break;
+        case CommandManagement:
+            manage_sequence(cmd, &current_command);
+            break;
         }
         if (g_error) return;
-        next = next->next;
+        ++current_command;
+        next = cmdseq_get(g_cmds, current_command);
     }
 }
 
@@ -727,6 +747,47 @@ t_command parse_command(char *input)
             }
 
             cmd.var_id = num;
+        }
+        else if (cmd.args_type == Step)
+        {
+            int num = 0;
+            int check = sscanf(args, "%d", &num);
+            if (check != 1)
+            {
+                g_error = ERR_BAD_CMD_ARGS;
+                strcpy(g_error_additional, input);
+                return cmd;
+            }
+
+            cmd.step = num;
+        }
+        else if (cmd.args_type == TwoVariables)
+        {
+            int num1 = 0, num2 = 0;
+            int check = sscanf(args, "_%d _%d", &num1, &num2);
+            if (check != 2 || num1 < 0 || num1 > 9 || num2 < 0 || num2 > 9)
+            {
+                g_error = ERR_BAD_CMD_ARGS;
+                strcpy(g_error_additional, input);
+                return cmd;
+            }
+
+            cmd.var_id = num1;
+            cmd.var2_id = num2;
+        }
+        else if (cmd.args_type == VariableAndStep)
+        {
+            int num1 = 0, num2 = 0;
+            int check = sscanf(args, "_%d %d", &num1, &num2);
+            if (check != 2 || num1 < 0 || num1 > 9)
+            {
+                g_error = ERR_BAD_CMD_ARGS;
+                strcpy(g_error_additional, input);
+                return cmd;
+            }
+
+            cmd.var_id = num1;
+            cmd.step = num2;
         }
     }
 
@@ -1136,6 +1197,90 @@ void exec_variable_cmd(t_command cmd)
     }
 }
 
+void manage_sequence(t_command cmd, int *current_command)
+{
+    if (cmd.name == sub)
+    {
+        if (!v_var_isset[cmd.var_id] || !v_var_isset[cmd.var2_id])
+        {
+            g_error = ERR_SUB_NOT_SET;
+            sprintf(g_error_additional, "_%d _%d", cmd.var_id, cmd.var2_id);
+            return;
+        }
+
+        char *endptr;
+        double value1 = strtod(v_var[cmd.var_id], &endptr);
+        if (*endptr != 0)
+        {
+            g_error = ERR_NOT_NUMBER;
+            sprintf(g_error_additional, "_%d", cmd.var_id);
+            return;;
+        }
+
+        double value2 = strtod(v_var[cmd.var2_id], &endptr);
+        if (*endptr != 0)
+        {
+            g_error = ERR_NOT_NUMBER;
+            sprintf(g_error_additional, "_%d", cmd.var_id);
+            return;;
+        }
+
+        char buffer[64] = {0};
+        sprintf(buffer, "%g", value1 - value2);
+        v_var[cmd.var_id] = realloc(v_var[cmd.var_id], strlen(buffer) + 1);
+        strcpy(v_var[cmd.var_id], buffer);
+    }
+    else if (cmd.name == cmd_goto)
+    {
+        if (cmd.step == 1) return;
+        if (cmd.step >= 2) --cmd.step;
+        int result = *current_command + cmd.step;
+        if (result < 0) result = 0;
+
+        if (result == *current_command)
+        {
+            g_error = ERR_INFINITE_CYCLE;
+            return;
+        }
+
+        *current_command = result;
+    }
+    else if (cmd.name == iszero)
+    {
+        if (!v_var_isset[cmd.var_id])
+        {
+            g_error = ERR_CANT_USE;
+            sprintf(g_error_additional, "%d", cmd.var_id);
+            return;
+        }
+
+        char *endptr;
+        double value = strtod(v_var[cmd.var_id], &endptr);
+        if (*endptr != 0)
+        {
+            g_error = ERR_NOT_NUMBER;
+            sprintf(g_error_additional, "_%d", cmd.var_id);
+            return;
+        }
+
+        if (value == 0)
+        {
+            if (cmd.step == 1) return;
+            if (cmd.step >= 2) --cmd.step;
+            int result = *current_command + cmd.step;
+            if (result < 0) result = 0;
+
+            if (result == *current_command)
+            {
+                g_error = ERR_INFINITE_CYCLE;
+                return;
+            }
+
+            *current_command = result;
+        }
+    }
+}
+
 void print_table()
 {
     t_row *current = g_table->first;
@@ -1425,6 +1570,20 @@ t_cmdseq* cmdseq_add(t_cmdseq *first, t_command cmd)
     return current->next;
 }
 
+t_cmdseq *cmdseq_get(t_cmdseq *first, int index)
+{
+    if (index < 0) return NULL;
+
+    t_cmdseq *current = first;
+    for (int i = 0; i < index; ++i)
+    {
+        if (current == NULL) return NULL;
+        current = current->next;
+    }
+
+    return current;
+}
+
 void cmdseq_delete(t_cmdseq *first)
 {
     if (first->next != NULL)
@@ -1490,6 +1649,15 @@ void error()
         break;
     case ERR_CANT_USE:
         fprintf(stderr, "ERROR: can't use value of variable %s: value isn't set.\n", g_error_additional);
+        break;
+    case ERR_NOT_NUMBER:
+        fprintf(stderr, "ERROR: can't run command: variable %s has no number value.\n", g_error_additional);
+        break;
+    case ERR_SUB_NOT_SET:
+        fprintf(stderr, "ERROR: can't run command sub: one of the variables %s is not set.\n", g_error_additional);
+        break;
+    case ERR_INFINITE_CYCLE:
+        fprintf(stderr, "ERROR: program caused an infinite cycle.\n");
         break;
     }
 
@@ -1593,6 +1761,9 @@ e_command_name get_cmd_name (char *command)
     else if (strcmp(command, "use") == 0) return use;
     else if (strcmp(command, "inc") == 0) return inc;
     else if (strcmp(command, "[set]") == 0) return var_set;
+    else if (strcmp(command, "goto") == 0) return cmd_goto;
+    else if (strcmp(command, "iszero") == 0) return iszero;
+    else if (strcmp(command, "sub") == 0) return sub;
     else g_error = 4;
 
     return 1000;
@@ -1636,6 +1807,12 @@ e_args_type get_args_type (e_command_name command)
         return Variable;
     case var_set:
         return None;
+    case cmd_goto:
+        return Step;
+    case iszero:
+        return VariableAndStep;
+    case sub:
+        return TwoVariables;
     default:
         g_error = ERR_UNKNOWN_CMD;
     }
@@ -1656,6 +1833,10 @@ e_command_type get_cmd_type (e_command_name command)
     else if (command >= def && command <= var_set)
     {
         return VariableOperation;
+    }
+    else if (command >= cmd_goto && command <= sub)
+    {
+        return CommandManagement;
     }
     else
     {
